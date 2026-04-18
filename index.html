@@ -70,8 +70,18 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 24px; }
 .field-card {
   background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2);
-  padding: 16px; cursor: pointer; transition: all .18s; position: relative; overflow: hidden;
+  padding: 16px; cursor: pointer; transition: all .18s; position: relative;
 }
+.field-card-del {
+  position: absolute; top: 8px; right: 8px;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
+  color: var(--text3); font-size: 12px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0.45; transition: all .15s; z-index: 2;
+}
+.field-card:hover .field-card-del { opacity: 1; }
+.field-card-del:hover { background: rgba(220,70,70,0.6); color: #fff; border-color: transparent; transform: scale(1.1); }
 .field-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
 .field-card.work::before   { background: var(--c-work); }
 .field-card.yt::before     { background: var(--c-yt); }
@@ -686,7 +696,13 @@ function loadData() {
   } catch { return JSON.parse(JSON.stringify(DEFAULT_DATA)); }
 }
 function syncFields() {
-  FIELDS = { ...DEFAULT_FIELDS, ...(state.customFields || {}) };
+  // customFields의 null은 삭제된 기본 분야를 의미
+  const custom = state.customFields || {};
+  const deletedKeys = Object.keys(custom).filter(k => custom[k] === null);
+  FIELDS = { ...DEFAULT_FIELDS, ...custom };
+  // null 값(삭제된 분야) 제거
+  deletedKeys.forEach(k => delete FIELDS[k]);
+  Object.keys(FIELDS).forEach(k => { if (!FIELDS[k]) delete FIELDS[k]; });
 }
 function saveData() { localStorage.setItem('myverse_data', JSON.stringify(state)); }
 function getNode(id) { return state.nodes.find(n => n.id === id); }
@@ -755,21 +771,49 @@ function getFieldProgress(field) {
 function renderCardView() {
   const grid = document.getElementById('field-cards');
   grid.innerHTML = '';
+  const DEFAULT_FIELD_KEYS = ['work', 'yt', 'learn', 'health', 'money'];
+
   Object.entries(FIELDS).forEach(([key, f]) => {
     const prog = getFieldProgress(key);
     const nodeCount = state.nodes.filter(n => n.field === key).length;
+    const isDefault = DEFAULT_FIELD_KEYS.includes(key);
     const el = document.createElement('div');
-    el.className = `field-card ${key}`;
+    el.className = `field-card ${isDefault ? key : ''}`;
+
+    // 커스텀 분야 상단 색상 바 (기본 분야는 ::before CSS로 처리)
+    const colorBar = !isDefault
+      ? `<div style="position:absolute;top:0;left:0;right:0;height:2px;background:${f.color};border-radius:2px 2px 0 0"></div>`
+      : '';
+
     el.innerHTML = `
+      ${colorBar}
+      <button class="field-card-del" title="분야 삭제">✕</button>
       <div class="card-icon">${f.icon}</div>
       <div class="card-title">${f.label}</div>
       <div class="card-sub">노드 ${nodeCount}개 · 할 일 ${prog.total}개</div>
-      <div class="prog-bar"><div class="prog-fill" style="width:${prog.pct}%;background:${f.color}${prog.pct===100?';background:#639922':''}"></div></div>
+      <div class="prog-bar"><div class="prog-fill" style="width:${prog.pct}%;background:${prog.pct===100?'#68C268':f.color}"></div></div>
       <div class="prog-label">${prog.done}/${prog.total} 완료 (${prog.pct}%)</div>
     `;
-    el.addEventListener('click', () => openNodePanel(key));
+
+    // 카드 클릭 → 패널 열기
+    el.addEventListener('click', e => {
+      if (e.target.classList.contains('field-card-del')) return;
+      openNodePanel(key);
+    });
+
+    // 삭제 버튼
+    el.querySelector('.field-card-del').addEventListener('click', e => {
+      e.stopPropagation();
+      const msg = isDefault
+        ? `"${f.label}"은 기본 분야입니다.\n정말 삭제할까요? 관련 노드와 데이터가 모두 사라집니다.`
+        : `"${f.label}" 분야를 삭제할까요?\n관련 노드와 데이터가 모두 사라집니다.`;
+      if (!confirm(msg)) return;
+      deleteField(key);
+    });
+
     grid.appendChild(el);
   });
+
   const addCard = document.createElement('div');
   addCard.className = 'field-card add-card';
   addCard.innerHTML = '<span>＋</span><p>분야 추가</p>';
@@ -1381,6 +1425,49 @@ function renderPanelProgress(node) {
 /* ── 계층형 프로젝트 트리 렌더링 ──
    구조: 프로젝트 > 할 일 > 세부 계획 > 메모 (최대 4단계, 5번째는 메모 추가)
 */
+/* ── 분야 삭제 ── */
+function deleteField(key) {
+  // 1) FIELDS에서 제거
+  if (state.customFields && state.customFields[key]) {
+    delete state.customFields[key];
+  } else {
+    // 기본 분야는 DEFAULT_FIELDS에서 제거할 수 없으므로
+    // customFields에 _deleted 플래그로 관리
+    if (!state.customFields) state.customFields = {};
+    state.customFields[key] = null; // null = 삭제 마크
+  }
+
+  // 2) 해당 분야의 모든 노드 제거
+  state.nodes = state.nodes.filter(n => n.field !== key);
+
+  // 3) 루트('나') 노드의 connectedIds에서 제거
+  const me = state.nodes.find(n => n.isRoot);
+  if (me) me.connectedIds = me.connectedIds.filter(id => id !== key);
+
+  // 4) 칸반 데이터 제거
+  if (state.kanban) delete state.kanban[key];
+
+  // 5) 달력 이벤트 제거
+  if (state.events) state.events = state.events.filter(ev => ev.field !== key);
+
+  // 6) expandedNodes 정리
+  expandedNodes.delete(key);
+
+  // 7) FIELDS 재동기화
+  syncFields();
+
+  // 8) 전체 뷰 갱신
+  saveData();
+  renderCardView();
+  rebuildVirtualNodes();
+  if (ctx) { resolveCollisions(); drawGraph(); }
+  renderKanban();
+  renderCalFilters();
+  renderCalGrid();
+
+  showToast(`"${FIELDS[key]?.label || key}" 분야가 삭제되었습니다`);
+}
+
 /* ── 모든 뷰 동기화 ── */
 function syncAll() {
   saveData();
