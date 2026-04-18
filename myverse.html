@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Myverse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ─── Reset & Base ─── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0f0f13;
+  --bg2: #16161e;
+  --bg3: #1e1e2a;
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.14);
+  --text: #e8e8f0;
+  --text2: #9898b0;
+  --text3: #5a5a72;
+  --accent: #7F77DD;
+  --accent2: #9f99e8;
+  --c-work: #7F77DD; --c-work-bg: rgba(127,119,221,0.12); --c-work-bg2: rgba(127,119,221,0.2);
+  --c-yt:   #1D9E75; --c-yt-bg:   rgba(29,158,117,0.12);  --c-yt-bg2:  rgba(29,158,117,0.2);
+  --c-learn:#378ADD; --c-learn-bg:rgba(55,138,221,0.12); --c-learn-bg2:rgba(55,138,221,0.2);
+  --c-health:#639922; --c-health-bg:rgba(99,153,34,0.12); --c-health-bg2:rgba(99,153,34,0.2);
+  --c-money: #BA7517; --c-money-bg: rgba(186,117,23,0.12); --c-money-bg2:rgba(186,117,23,0.2);
+  --r: 10px; --r2: 14px; --r3: 18px;
+  font-size: 16px;
+}
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Pretendard', -apple-system, sans-serif; -webkit-font-smoothing: antialiased; overflow: hidden; }
+
+/* ─── Layout ─── */
+.app { display: flex; flex-direction: column; height: 100vh; max-width: 1280px; margin: 0 auto; }
+
+/* ─── Top Bar ─── */
+.topbar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  flex-shrink: 0; z-index: 10;
+}
+.logo { font-size: 18px; font-weight: 600; letter-spacing: -0.03em; margin-right: 8px; }
+.logo em { color: var(--accent); font-style: normal; }
+.nav-tabs { display: flex; gap: 2px; flex: 1; }
+.nav-tab {
+  padding: 6px 14px; border-radius: var(--r); font-size: 13px; font-weight: 500;
+  cursor: pointer; color: var(--text2); transition: all .15s; border: none; background: none;
+}
+.nav-tab:hover { color: var(--text); background: var(--bg3); }
+.nav-tab.active { background: var(--bg3); color: var(--text); border: 1px solid var(--border2); }
+.capture-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: var(--r); font-size: 12px; font-weight: 500;
+  background: var(--bg3); border: 1px solid var(--border2); color: var(--text2);
+  cursor: pointer; transition: all .15s; white-space: nowrap;
+}
+.capture-btn:hover { color: var(--text); border-color: var(--accent); }
+.capture-btn kbd { background: var(--border); padding: 1px 5px; border-radius: 4px; font-size: 11px; font-family: inherit; }
+
+/* ─── Main content ─── */
+.main { flex: 1; overflow: hidden; position: relative; }
+.view { position: absolute; inset: 0; overflow-y: auto; display: none; padding: 20px; }
+.view.active { display: block; }
+
+/* ─── Card View ─── */
+.section-label { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px; }
+.cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.field-card {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2);
+  padding: 16px; cursor: pointer; transition: all .18s; position: relative; overflow: hidden;
+}
+.field-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+.field-card.work::before   { background: var(--c-work); }
+.field-card.yt::before     { background: var(--c-yt); }
+.field-card.learn::before  { background: var(--c-learn); }
+.field-card.health::before { background: var(--c-health); }
+.field-card.money::before  { background: var(--c-money); }
+.field-card:hover { border-color: var(--border2); background: var(--bg3); transform: translateY(-1px); }
+.card-icon { font-size: 22px; margin-bottom: 10px; }
+.card-title { font-size: 15px; font-weight: 600; margin-bottom: 3px; }
+.card-sub { font-size: 12px; color: var(--text2); margin-bottom: 12px; }
+.prog-bar { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.prog-fill { height: 100%; border-radius: 2px; transition: width .4s ease; }
+.prog-label { font-size: 11px; color: var(--text3); margin-top: 5px; }
+.add-card { border: 1px dashed var(--border2); background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 120px; }
+.add-card:hover { border-color: var(--accent); background: var(--c-work-bg); }
+.add-card span { font-size: 24px; color: var(--text3); }
+.add-card p { font-size: 12px; color: var(--text3); }
+
+/* ─── Today list ─── */
+.today-list { display: flex; flex-direction: column; gap: 6px; }
+.today-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r); cursor: pointer; transition: all .15s; }
+.today-item:hover { border-color: var(--border2); background: var(--bg3); }
+.today-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.today-text { flex: 1; font-size: 13px; }
+.today-text.done { text-decoration: line-through; color: var(--text3); }
+.today-tag { font-size: 11px; color: var(--text3); }
+.checkbox { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--border2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; transition: all .15s; }
+.checkbox.checked { background: var(--accent); border-color: var(--accent); }
+.checkbox.checked::after { content: '✓'; font-size: 10px; color: white; }
+
+/* ─── Graph View ─── */
+#graph-view { padding: 0; overflow: hidden; }
+#graph-canvas { width: 100%; height: 100%; cursor: grab; }
+#graph-canvas:active { cursor: grabbing; }
+.graph-toolbar { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--r2); padding: 8px 12px; z-index: 5; }
+.graph-btn { padding: 5px 10px; border-radius: var(--r); font-size: 12px; background: var(--bg3); border: 1px solid var(--border); color: var(--text2); cursor: pointer; transition: all .15s; }
+.graph-btn:hover { color: var(--text); border-color: var(--border2); }
+
+/* ─── Node Detail Panel ─── */
+.node-panel {
+  position: absolute; right: 0; top: 0; bottom: 0; width: 380px;
+  background: var(--bg2); border-left: 1px solid var(--border);
+  display: flex; flex-direction: column; z-index: 20;
+  transform: translateX(100%); transition: transform .25s cubic-bezier(.4,0,.2,1);
+}
+.node-panel.open { transform: translateX(0); }
+.panel-header { display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+.panel-close { background: none; border: none; color: var(--text2); font-size: 18px; cursor: pointer; padding: 2px 6px; border-radius: 6px; transition: all .15s; margin-left: auto; }
+.panel-close:hover { background: var(--bg3); color: var(--text); }
+.panel-color-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.panel-title { font-size: 16px; font-weight: 600; flex: 1; }
+.panel-body { flex: 1; overflow-y: auto; padding: 16px 20px; }
+.panel-section { margin-bottom: 20px; }
+.panel-label { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+.panel-content { font-size: 13px; color: var(--text2); line-height: 1.7; }
+.prog-section { padding: 12px; background: var(--bg3); border-radius: var(--r); margin-bottom: 20px; }
+.prog-section .prog-bar { height: 6px; margin-bottom: 6px; }
+.prog-nums { display: flex; justify-content: space-between; font-size: 12px; color: var(--text2); }
+.task-list { display: flex; flex-direction: column; gap: 6px; }
+.task-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--bg3); border-radius: var(--r); }
+.task-text { font-size: 13px; color: var(--text); flex: 1; }
+.task-text.done { text-decoration: line-through; color: var(--text3); }
+.add-task { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: var(--r); cursor: pointer; color: var(--text3); font-size: 13px; border: 1px dashed var(--border2); transition: all .15s; }
+.add-task:hover { color: var(--accent2); border-color: var(--accent); background: var(--c-work-bg); }
+.connected-nodes { display: flex; flex-wrap: wrap; gap: 6px; }
+.conn-chip { padding: 4px 10px; border-radius: 20px; font-size: 12px; background: var(--bg3); border: 1px solid var(--border); color: var(--text2); cursor: pointer; transition: all .15s; }
+.conn-chip:hover { border-color: var(--border2); color: var(--text); }
+
+/* ─── Quick Capture Modal ─── */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 100; display: none; align-items: flex-start; justify-content: center; padding-top: 15vh; }
+.overlay.open { display: flex; }
+.capture-modal {
+  width: 560px; background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: var(--r3); overflow: hidden;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6); animation: slideDown .2s cubic-bezier(.4,0,.2,1);
+}
+@keyframes slideDown { from { transform: translateY(-16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.capture-input { width: 100%; background: transparent; border: none; outline: none; padding: 18px 20px; font-size: 16px; color: var(--text); font-family: inherit; }
+.capture-input::placeholder { color: var(--text3); }
+.capture-divider { height: 1px; background: var(--border); }
+.capture-footer { display: flex; align-items: center; gap: 8px; padding: 12px 16px; }
+.field-chip {
+  padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;
+  cursor: pointer; border: 1px solid var(--border); background: var(--bg3); color: var(--text2);
+  transition: all .15s;
+}
+.field-chip:hover { border-color: var(--border2); }
+.field-chip.sel { color: white; border-color: transparent; }
+.field-chip.sel.work   { background: var(--c-work); }
+.field-chip.sel.yt     { background: var(--c-yt); }
+.field-chip.sel.learn  { background: var(--c-learn); }
+.field-chip.sel.health { background: var(--c-health); }
+.field-chip.sel.money  { background: var(--c-money); }
+.save-btn {
+  margin-left: auto; padding: 6px 16px; border-radius: var(--r); font-size: 13px; font-weight: 500;
+  background: var(--accent); border: none; color: white; cursor: pointer; transition: all .15s;
+}
+.save-btn:hover { background: var(--accent2); }
+.save-btn:disabled { opacity: .4; cursor: default; }
+.capture-hint-row { padding: 8px 16px; font-size: 11px; color: var(--text3); display: flex; gap: 16px; border-top: 1px solid var(--border); }
+
+/* ─── Toast ─── */
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(60px); background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--r2); padding: 10px 20px; font-size: 13px; color: var(--text); z-index: 200; transition: transform .3s cubic-bezier(.4,0,.2,1); pointer-events: none; }
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* ─── Kanban View ─── */
+#kanban-view { padding: 0; overflow: hidden; display: none; flex-direction: column; }
+#kanban-view.active { display: flex; }
+.kanban-topbar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.kanban-title { font-size: 15px; font-weight: 600; }
+.kanban-selector { display: flex; gap: 6px; flex: 1; flex-wrap: wrap; }
+.kanban-tab {
+  padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;
+  cursor: pointer; border: 1px solid var(--border); background: none; color: var(--text2); transition: all .15s;
+}
+.kanban-tab:hover { color: var(--text); border-color: var(--border2); }
+.kanban-tab.active { color: white; border-color: transparent; }
+.kanban-tab.active.yt     { background: var(--c-yt); }
+.kanban-tab.active.work   { background: var(--c-work); }
+.kanban-tab.active.learn  { background: var(--c-learn); }
+.kanban-tab.active.health { background: var(--c-health); }
+.kanban-tab.active.money  { background: var(--c-money); }
+.add-kanban-card-btn {
+  margin-left: auto; padding: 5px 12px; border-radius: var(--r); font-size: 12px; font-weight: 500;
+  background: var(--bg3); border: 1px solid var(--border2); color: var(--text2); cursor: pointer; transition: all .15s;
+}
+.add-kanban-card-btn:hover { color: var(--text); border-color: var(--accent); }
+.kanban-board { display: flex; gap: 10px; padding: 16px 20px; flex: 1; overflow-x: auto; overflow-y: hidden; }
+.kanban-col {
+  min-width: 220px; flex: 1; background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); display: flex; flex-direction: column; max-height: 100%;
+}
+.kanban-col.drag-over { border-color: var(--accent); background: var(--c-work-bg); }
+.col-header { padding: 12px 14px 10px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.col-dot { width: 7px; height: 7px; border-radius: 50%; }
+.col-name { font-size: 12px; font-weight: 600; color: var(--text2); flex: 1; }
+.col-count { font-size: 11px; color: var(--text3); background: var(--bg3); padding: 1px 7px; border-radius: 10px; }
+.col-cards { flex: 1; overflow-y: auto; padding: 0 8px 8px; display: flex; flex-direction: column; gap: 6px; }
+.kanban-card {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: var(--r);
+  padding: 10px 12px; cursor: grab; transition: all .15s; user-select: none;
+}
+.kanban-card:active { cursor: grabbing; opacity: .7; }
+.kanban-card:hover { border-color: var(--border2); }
+.kanban-card.dragging { opacity: .4; }
+.kc-title { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 6px; }
+.kc-tags { display: flex; gap: 4px; flex-wrap: wrap; }
+.kc-tag { font-size: 10px; padding: 2px 7px; border-radius: 10px; }
+.kc-prog { margin-top: 8px; }
+.kc-prog-bar { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; margin-top: 4px; }
+.kc-prog-fill { height: 100%; border-radius: 2px; }
+.kc-prog-label { font-size: 10px; color: var(--text3); }
+.col-add { padding: 6px 8px 10px; flex-shrink: 0; }
+.col-add-btn { width: 100%; padding: 7px; border-radius: var(--r); font-size: 12px; color: var(--text3); background: none; border: 1px dashed var(--border); cursor: pointer; transition: all .15s; }
+.col-add-btn:hover { color: var(--text2); border-color: var(--border2); }
+
+/* ─── Calendar View ─── */
+#cal-view { padding: 0; display: none; flex-direction: column; overflow: hidden; }
+#cal-view.active { display: flex; }
+.cal-topbar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.cal-nav { display: flex; align-items: center; gap: 8px; }
+.cal-nav-btn { background: var(--bg3); border: 1px solid var(--border); color: var(--text2); width: 28px; height: 28px; border-radius: 8px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+.cal-nav-btn:hover { color: var(--text); border-color: var(--border2); }
+.cal-month-label { font-size: 15px; font-weight: 600; min-width: 110px; text-align: center; }
+.cal-today-btn { padding: 4px 10px; border-radius: var(--r); font-size: 12px; background: var(--bg3); border: 1px solid var(--border); color: var(--text2); cursor: pointer; transition: all .15s; }
+.cal-today-btn:hover { color: var(--text); }
+.cal-filters { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+.cal-filter {
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 500;
+  cursor: pointer; border: 1px solid var(--border); background: none; color: var(--text2); transition: all .15s;
+}
+.cal-filter.on { color: white; border-color: transparent; }
+.cal-filter.on.work   { background: var(--c-work); }
+.cal-filter.on.yt     { background: var(--c-yt); }
+.cal-filter.on.learn  { background: var(--c-learn); }
+.cal-filter.on.health { background: var(--c-health); }
+.cal-filter.on.money  { background: var(--c-money); }
+.cal-filter-dot { width: 7px; height: 7px; border-radius: 50%; }
+.cal-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.cal-weekdays { display: grid; grid-template-columns: repeat(7,1fr); border-bottom: 1px solid var(--border); }
+.cal-weekday { padding: 8px 0; text-align: center; font-size: 11px; font-weight: 600; color: var(--text3); }
+.cal-grid { display: grid; grid-template-columns: repeat(7,1fr); flex: 1; overflow-y: auto; }
+.cal-day {
+  border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  padding: 6px 6px 4px; min-height: 90px; cursor: pointer; transition: background .12s; position: relative;
+}
+.cal-day:hover { background: var(--bg3); }
+.cal-day.other-month { opacity: .35; }
+.cal-day.today .day-num { background: var(--accent); color: white; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
+.day-num { font-size: 12px; color: var(--text2); margin-bottom: 4px; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
+.cal-event { font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.cal-more { font-size: 10px; color: var(--text3); padding: 1px 4px; }
+
+/* ─── Event Detail Modal ─── */
+.event-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 150; display: none; align-items: center; justify-content: center; }
+.event-modal-overlay.open { display: flex; }
+.event-modal { width: 380px; background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--r3); padding: 20px; animation: slideDown .2s cubic-bezier(.4,0,.2,1); }
+.event-modal h3 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+.event-form { display: flex; flex-direction: column; gap: 10px; }
+.event-form input, .event-form select, .event-form textarea {
+  background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--r);
+  color: var(--text); font-family: inherit; font-size: 13px; padding: 9px 12px; outline: none; transition: border .15s;
+}
+.event-form input:focus, .event-form select:focus, .event-form textarea:focus { border-color: var(--accent); }
+.event-form select option { background: var(--bg2); }
+.event-form textarea { resize: vertical; min-height: 60px; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+.modal-cancel { padding: 7px 14px; border-radius: var(--r); font-size: 13px; background: none; border: 1px solid var(--border2); color: var(--text2); cursor: pointer; transition: all .15s; }
+.modal-cancel:hover { color: var(--text); }
+.modal-save { padding: 7px 16px; border-radius: var(--r); font-size: 13px; font-weight: 500; background: var(--accent); border: none; color: white; cursor: pointer; transition: all .15s; }
+.modal-save:hover { background: var(--accent2); }
+.modal-delete { padding: 7px 14px; border-radius: var(--r); font-size: 13px; background: none; border: 1px solid rgba(220,60,60,0.3); color: #e05a5a; cursor: pointer; transition: all .15s; margin-right: auto; }
+.modal-delete:hover { background: rgba(220,60,60,0.1); }
+
+/* ─── Responsive ─── */
+@media (max-width: 768px) {
+  .topbar { padding: 8px 12px; }
+  .logo { font-size: 16px; }
+  .nav-tab { padding: 5px 10px; font-size: 12px; }
+  .cards-grid { grid-template-columns: repeat(2, 1fr); }
+  .node-panel { width: 100%; }
+  .capture-modal { width: calc(100vw - 24px); }
+  .kanban-board { padding: 10px; }
+  .kanban-col { min-width: 180px; }
+  .cal-filters { display: none; }
+  .event-modal { width: calc(100vw - 32px); }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="logo">My<em>verse</em></div>
+    <nav class="nav-tabs">
+      <button class="nav-tab active" data-view="card-view">홈</button>
+      <button class="nav-tab" data-view="graph-view">그래프</button>
+      <button class="nav-tab" data-view="kanban-view">칸반</button>
+      <button class="nav-tab" data-view="cal-view">달력</button>
+    </nav>
+    <button class="capture-btn" id="open-capture-btn">
+      <kbd>⌘K</kbd> 빠른 캡처
+    </button>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- ① 카드 뷰 (홈) -->
+    <div class="view active" id="card-view">
+      <div class="section-label">분야 현황</div>
+      <div class="cards-grid" id="field-cards"></div>
+
+      <div class="section-label">오늘 할 일</div>
+      <div class="today-list" id="today-list"></div>
+    </div>
+
+    <!-- ② 그래프 뷰 -->
+    <div class="view" id="graph-view">
+      <canvas id="graph-canvas"></canvas>
+      <div class="graph-toolbar">
+        <button class="graph-btn" id="zoom-in">＋ 확대</button>
+        <button class="graph-btn" id="zoom-out">－ 축소</button>
+        <button class="graph-btn" id="zoom-reset">↺ 초기화</button>
+        <button class="graph-btn" id="add-node-btn">＋ 노드 추가</button>
+      </div>
+      <!-- 노드 상세 패널 -->
+      <div class="node-panel" id="node-panel">
+        <div class="panel-header">
+          <div class="panel-color-dot" id="panel-dot"></div>
+          <div class="panel-title" id="panel-title">노드 이름</div>
+          <button class="panel-close" id="panel-close">✕</button>
+        </div>
+        <div class="panel-body">
+          <div class="prog-section">
+            <div class="panel-label">진행률</div>
+            <div class="prog-bar"><div class="prog-fill" id="panel-prog-fill" style="width:0%"></div></div>
+            <div class="prog-nums"><span id="panel-prog-text">0 / 0 완료</span><span id="panel-prog-pct">0%</span></div>
+          </div>
+          <div class="panel-section">
+            <div class="panel-label">내용</div>
+            <div class="panel-content" id="panel-content">—</div>
+          </div>
+          <div class="panel-section">
+            <div class="panel-label">할 일</div>
+            <div class="task-list" id="panel-tasks"></div>
+            <div class="add-task" id="add-task-btn">＋ 할 일 추가</div>
+          </div>
+          <div class="panel-section">
+            <div class="panel-label">연결된 노드</div>
+            <div class="connected-nodes" id="panel-connected"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ③ 칸반 보드 -->
+    <div class="view" id="kanban-view">
+      <div class="kanban-topbar">
+        <div class="kanban-selector" id="kanban-selector"></div>
+        <button class="add-kanban-card-btn" id="add-kanban-card-btn">＋ 카드 추가</button>
+      </div>
+      <div class="kanban-board" id="kanban-board"></div>
+    </div>
+
+    <!-- ④ 통합 달력 -->
+    <div class="view" id="cal-view">
+      <div class="cal-topbar">
+        <div class="cal-nav">
+          <button class="cal-nav-btn" id="cal-prev">‹</button>
+          <div class="cal-month-label" id="cal-month-label"></div>
+          <button class="cal-nav-btn" id="cal-next">›</button>
+        </div>
+        <button class="cal-today-btn" id="cal-today-btn">오늘</button>
+        <div class="cal-filters" id="cal-filters"></div>
+      </div>
+      <div class="cal-body">
+        <div class="cal-weekdays">
+          <div class="cal-weekday" style="color:#e05a5a">일</div>
+          <div class="cal-weekday">월</div><div class="cal-weekday">화</div>
+          <div class="cal-weekday">수</div><div class="cal-weekday">목</div>
+          <div class="cal-weekday">금</div>
+          <div class="cal-weekday" style="color:#378ADD">토</div>
+        </div>
+        <div class="cal-grid" id="cal-grid"></div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ⌘K 빠른 캡처 모달 -->
+<div class="overlay" id="capture-overlay">
+  <div class="capture-modal">
+    <input class="capture-input" id="capture-input" placeholder="지금 생각나는 것을 입력하세요..." autocomplete="off">
+    <div class="capture-divider"></div>
+    <div class="capture-footer">
+      <button class="field-chip sel work" data-field="work">💼 업무</button>
+      <button class="field-chip" data-field="yt">🎬 유튜브</button>
+      <button class="field-chip" data-field="learn">📚 학습</button>
+      <button class="field-chip" data-field="health">💪 건강</button>
+      <button class="field-chip" data-field="money">💰 금융</button>
+      <button class="save-btn" id="capture-save" disabled>저장</button>
+    </div>
+    <div class="capture-hint-row">
+      <span>Enter 저장</span><span>Esc 닫기</span>
+    </div>
+  </div>
+</div>
+
+<!-- 일정/칸반 카드 편집 모달 -->
+<div class="event-modal-overlay" id="event-modal-overlay">
+  <div class="event-modal">
+    <h3 id="event-modal-title">일정 추가</h3>
+    <div class="event-form">
+      <input type="text" id="event-name" placeholder="제목을 입력하세요">
+      <select id="event-field">
+        <option value="work">💼 업무</option>
+        <option value="yt">🎬 유튜브</option>
+        <option value="learn">📚 학습</option>
+        <option value="health">💪 건강</option>
+        <option value="money">💰 금융</option>
+      </select>
+      <input type="date" id="event-date">
+      <textarea id="event-note" placeholder="메모 (선택사항)"></textarea>
+      <div class="modal-actions">
+        <button class="modal-delete" id="event-delete" style="display:none">삭제</button>
+        <button class="modal-cancel" id="event-cancel">취소</button>
+        <button class="modal-save" id="event-save">저장</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════════
+   MYVERSE DATA LAYER
+   ═══════════════════════════════════════════════ */
+const FIELDS = {
+  work:   { label: '업무',  icon: '💼', color: '#7F77DD', bg: 'rgba(127,119,221,0.12)' },
+  yt:     { label: '유튜브', icon: '🎬', color: '#1D9E75', bg: 'rgba(29,158,117,0.12)' },
+  learn:  { label: '학습',  icon: '📚', color: '#378ADD', bg: 'rgba(55,138,221,0.12)' },
+  health: { label: '건강',  icon: '💪', color: '#639922', bg: 'rgba(99,153,34,0.12)' },
+  money:  { label: '금융',  icon: '💰', color: '#BA7517', bg: 'rgba(186,117,23,0.12)' },
+};
+
+const DEFAULT_DATA = {
+  nodes: [
+    { id: 'me', label: '나', field: null, content: 'Myverse의 중심입니다.', tasks: [], connectedIds: ['work','yt','learn','health','money'], x: 0, y: 0, isRoot: true },
+    { id: 'work',   label: '업무',  field: 'work',   content: '현재 진행중인 업무 프로젝트들입니다.', tasks: [{id:'t1',text:'Q2 보고서 초안',done:false},{id:'t2',text:'미팅 준비',done:true}], connectedIds:['me','w-report','w-meeting'], x:-220, y:-120 },
+    { id: 'yt',     label: '유튜브', field: 'yt',     content: '유튜브 채널 관련 작업입니다.', tasks: [{id:'t3',text:'스크립트 완성',done:false},{id:'t4',text:'썸네일 제작',done:false}], connectedIds:['me','yt-script'], x:220, y:-120 },
+    { id: 'learn',  label: '학습',  field: 'learn',  content: '현재 수강 중인 강의와 학습 자료입니다.', tasks: [{id:'t5',text:'React 3강 수강',done:true},{id:'t6',text:'복습 노트 정리',done:false}], connectedIds:['me'], x:-260, y:100 },
+    { id: 'health', label: '건강',  field: 'health', content: '운동과 건강 관리 루틴입니다.', tasks: [{id:'t7',text:'아침 운동',done:true},{id:'t8',text:'수분 섭취',done:true},{id:'t9',text:'저녁 스트레칭',done:false}], connectedIds:['me'], x:260, y:100 },
+    { id: 'money',  label: '금융',  field: 'money',  content: '저축 목표와 지출 관리입니다.', tasks: [{id:'ta',text:'월 예산 점검',done:false}], connectedIds:['me'], x:0, y:200 },
+    { id: 'w-report', label: 'Q2 보고서', field: 'work', content: '2분기 성과 보고서 작성', tasks: [{id:'tb',text:'데이터 수집',done:true},{id:'tc',text:'초안 작성',done:false},{id:'td',text:'검토',done:false}], connectedIds:['work'], x:-360, y:-60 },
+    { id: 'w-meeting', label: '팀 미팅', field: 'work', content: '주간 팀 미팅 준비', tasks: [{id:'te',text:'아젠다 작성',done:false}], connectedIds:['work'], x:-320, y:-200 },
+    { id: 'yt-script', label: 'Myverse 소개', field: 'yt', content: '채널 첫 영상 스크립트', tasks: [{id:'tf',text:'아이디어 정리',done:true},{id:'tg',text:'스크립트 초안',done:false},{id:'th',text:'검토',done:false}], connectedIds:['yt'], x:380, y:-60 },
+  ],
+  kanban: {
+    yt: [
+      { id:'kc1', col:'idea',    title:'Notion 활용법 총정리',  note:'', tasks:[] },
+      { id:'kc2', col:'idea',    title:'생산성 모닝 루틴',      note:'', tasks:[] },
+      { id:'kc3', col:'script',  title:'Myverse 소개 영상',    note:'첫 영상', tasks:[{id:'kt1',text:'아이디어 정리',done:true},{id:'kt2',text:'스크립트 초안',done:false}] },
+      { id:'kc4', col:'done',    title:'1분 생산성 팁',         note:'', tasks:[{id:'kt3',text:'편집',done:true},{id:'kt4',text:'업로드',done:true}] },
+    ],
+    work: [
+      { id:'kc5', col:'todo',   title:'Q2 보고서',  note:'',   tasks:[{id:'kt5',text:'데이터 수집',done:true},{id:'kt6',text:'초안',done:false}] },
+      { id:'kc6', col:'doing',  title:'팀 미팅 준비', note:'',  tasks:[{id:'kt7',text:'아젠다 작성',done:false}] },
+    ],
+    learn: [],
+    health: [],
+    money: [],
+  },
+  events: [
+    { id:'ev1', title:'Q2 보고서 마감',   field:'work',   date: getTodayPlus(3),  note:'' },
+    { id:'ev2', title:'유튜브 업로드',    field:'yt',     date: getTodayPlus(7),  note:'Myverse 소개' },
+    { id:'ev3', title:'React 강의 수강',  field:'learn',  date: getTodayPlus(1),  note:'3~5강' },
+    { id:'ev4', title:'월 예산 점검',     field:'money',  date: getTodayPlus(0),  note:'' },
+  ]
+};
+
+function getTodayPlus(days) {
+  const d = new Date(); d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem('myverse_data');
+    if (!raw) return JSON.parse(JSON.stringify(DEFAULT_DATA));
+    const parsed = JSON.parse(raw);
+    if (!parsed.kanban) parsed.kanban = JSON.parse(JSON.stringify(DEFAULT_DATA.kanban));
+    if (!parsed.events) parsed.events = JSON.parse(JSON.stringify(DEFAULT_DATA.events));
+    return parsed;
+  } catch { return JSON.parse(JSON.stringify(DEFAULT_DATA)); }
+}
+function saveData() { localStorage.setItem('myverse_data', JSON.stringify(state)); }
+function getNode(id) { return state.nodes.find(n => n.id === id); }
+function updateNode(id, patch) {
+  const idx = state.nodes.findIndex(n => n.id === id);
+  if (idx >= 0) { state.nodes[idx] = { ...state.nodes[idx], ...patch }; saveData(); }
+}
+
+let state = loadData();
+
+/* ═══════════════════════════════════════════════
+   NAVIGATION
+   ═══════════════════════════════════════════════ */
+const views = document.querySelectorAll('.view');
+const navTabs = document.querySelectorAll('.nav-tab');
+
+navTabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    const target = tab.dataset.view;
+    views.forEach(v => v.classList.toggle('active', v.id === target));
+    navTabs.forEach(t => t.classList.toggle('active', t === tab));
+    if (target === 'graph-view') { setTimeout(initGraph, 50); }
+    if (target === 'card-view') { renderCardView(); }
+    if (target === 'kanban-view') { renderKanban(); }
+    if (target === 'cal-view') { renderCalFilters(); renderCalHeader(); renderCalGrid(); }
+  });
+});
+
+/* ═══════════════════════════════════════════════
+   CARD VIEW
+   ═══════════════════════════════════════════════ */
+function getTodayTasks() {
+  const tasks = [];
+  state.nodes.forEach(node => {
+    if (!node.field) return;
+    node.tasks.forEach(t => {
+      if (!t.done) tasks.push({ ...t, nodeId: node.id, field: node.field, nodeLabel: node.label });
+    });
+  });
+  return tasks.slice(0, 8);
+}
+
+function getFieldProgress(field) {
+  const nodes = state.nodes.filter(n => n.field === field);
+  let total = 0, done = 0;
+  nodes.forEach(n => { total += n.tasks.length; done += n.tasks.filter(t => t.done).length; });
+  return { total, done, pct: total === 0 ? 0 : Math.round(done / total * 100) };
+}
+
+function renderCardView() {
+  const grid = document.getElementById('field-cards');
+  grid.innerHTML = '';
+  Object.entries(FIELDS).forEach(([key, f]) => {
+    const prog = getFieldProgress(key);
+    const nodeCount = state.nodes.filter(n => n.field === key).length;
+    const el = document.createElement('div');
+    el.className = `field-card ${key}`;
+    el.innerHTML = `
+      <div class="card-icon">${f.icon}</div>
+      <div class="card-title">${f.label}</div>
+      <div class="card-sub">노드 ${nodeCount}개 · 할 일 ${prog.total}개</div>
+      <div class="prog-bar"><div class="prog-fill" style="width:${prog.pct}%;background:${f.color}${prog.pct===100?';background:#639922':''}"></div></div>
+      <div class="prog-label">${prog.done}/${prog.total} 완료 (${prog.pct}%)</div>
+    `;
+    el.addEventListener('click', () => openNodePanel(key));
+    grid.appendChild(el);
+  });
+  const addCard = document.createElement('div');
+  addCard.className = 'field-card add-card';
+  addCard.innerHTML = '<span>＋</span><p>분야 추가</p>';
+  addCard.addEventListener('click', () => showToast('새 분야 추가 기능은 곧 업데이트됩니다'));
+  grid.appendChild(addCard);
+
+  // Today list
+  const list = document.getElementById('today-list');
+  list.innerHTML = '';
+  const tasks = getTodayTasks();
+  if (tasks.length === 0) {
+    list.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:12px 0">오늘 할 일이 없습니다 🎉</div>';
+    return;
+  }
+  tasks.forEach(t => {
+    const f = FIELDS[t.field];
+    const el = document.createElement('div');
+    el.className = 'today-item';
+    el.innerHTML = `
+      <div class="checkbox${t.done?' checked':''}" data-task="${t.id}" data-node="${t.nodeId}"></div>
+      <div class="today-dot" style="background:${f.color}"></div>
+      <div class="today-text${t.done?' done':''}">${t.text}</div>
+      <div class="today-tag">${f.label} · ${t.nodeLabel}</div>
+    `;
+    el.querySelector('.checkbox').addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleTask(t.nodeId, t.id);
+      renderCardView();
+    });
+    el.addEventListener('click', () => openNodePanel(t.nodeId));
+    list.appendChild(el);
+  });
+}
+
+function toggleTask(nodeId, taskId) {
+  const node = getNode(nodeId);
+  if (!node) return;
+  const tasks = node.tasks.map(t => t.id === taskId ? { ...t, done: !t.done } : t);
+  updateNode(nodeId, { tasks });
+}
+
+/* ═══════════════════════════════════════════════
+   GRAPH VIEW — Canvas-based
+   ═══════════════════════════════════════════════ */
+let canvas, ctx;
+let camX = 0, camY = 0, camScale = 1;
+let isDragging = false, lastMouse = null;
+let hoveredNode = null;
+let graphReady = false;
+
+function initGraph() {
+  canvas = document.getElementById('graph-canvas');
+  const container = document.getElementById('graph-view');
+  canvas.width = container.clientWidth;
+  canvas.height = container.clientHeight;
+  ctx = canvas.getContext('2d');
+  camX = canvas.width / 2;
+  camY = canvas.height / 2;
+  if (!graphReady) {
+    bindGraphEvents();
+    graphReady = true;
+  }
+  drawGraph();
+}
+
+function worldToScreen(x, y) {
+  return { x: x * camScale + camX, y: y * camScale + camY };
+}
+function screenToWorld(sx, sy) {
+  return { x: (sx - camX) / camScale, y: (sy - camY) / camScale };
+}
+
+function drawGraph() {
+  if (!ctx) return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Grid
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = 1;
+  const gridSize = 40 * camScale;
+  const offX = camX % gridSize;
+  const offY = camY % gridSize;
+  for (let x = offX; x < canvas.width; x += gridSize) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke(); }
+  for (let y = offY; y < canvas.height; y += gridSize) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke(); }
+  ctx.restore();
+
+  // Edges
+  state.nodes.forEach(node => {
+    node.connectedIds.forEach(cid => {
+      if (cid === 'me' && !node.isRoot) {
+        const target = getNode(cid);
+        if (!target) return;
+        const from = worldToScreen(node.x, node.y);
+        const to = worldToScreen(target.x, target.y);
+        const color = node.field ? FIELDS[node.field].color : '#7F77DD';
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.globalAlpha = 0.2;
+        ctx.lineWidth = 1.5 * camScale;
+        ctx.beginPath();
+        ctx.moveTo(from.x, from.y);
+        ctx.lineTo(to.x, to.y);
+        ctx.stroke();
+        ctx.restore();
+      }
+    });
+  });
+
+  // Nodes
+  state.nodes.forEach(node => {
+    const s = worldToScreen(node.x, node.y);
+    const isHovered = hoveredNode === node.id;
+    const isRoot = node.isRoot;
+    const r = (isRoot ? 36 : node.field && getNode(node.id) && !['work','yt','learn','health','money'].includes(node.id) ? 22 : 28) * camScale;
+    const color = node.field ? FIELDS[node.field].color : '#7F77DD';
+    const bg = node.field ? FIELDS[node.field].bg : 'rgba(127,119,221,0.15)';
+
+    ctx.save();
+    if (isHovered) {
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 16;
+    }
+    // circle fill
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = isRoot ? '#534AB7' : bg;
+    ctx.fill();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = (isHovered ? 2 : 1.5) * camScale;
+    ctx.stroke();
+    ctx.restore();
+
+    // label
+    ctx.save();
+    ctx.fillStyle = isRoot ? '#fff' : '#e8e8f0';
+    ctx.font = `${(isRoot ? 13 : 12) * camScale}px 'Pretendard', sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(node.label, s.x, s.y);
+
+    if (node.field) {
+      const prog = node.tasks.length > 0 ? Math.round(node.tasks.filter(t=>t.done).length/node.tasks.length*100) : null;
+      if (prog !== null) {
+        ctx.font = `${9 * camScale}px 'Pretendard', sans-serif`;
+        ctx.fillStyle = color;
+        ctx.fillText(`${prog}%`, s.x, s.y + 13 * camScale);
+      }
+    }
+    ctx.restore();
+  });
+}
+
+function bindGraphEvents() {
+  canvas.addEventListener('mousedown', e => { isDragging = true; lastMouse = { x: e.clientX, y: e.clientY }; });
+  canvas.addEventListener('mouseup', e => {
+    if (!isDragging) return;
+    const dx = e.clientX - lastMouse.x, dy = e.clientY - lastMouse.y;
+    if (Math.abs(dx) < 4 && Math.abs(dy) < 4) {
+      const w = screenToWorld(e.clientX - canvas.getBoundingClientRect().left, e.clientY - canvas.getBoundingClientRect().top);
+      const hit = findNode(w.x, w.y);
+      if (hit) openNodePanel(hit.id);
+    }
+    isDragging = false;
+  });
+  canvas.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    if (isDragging) {
+      camX += e.clientX - lastMouse.x;
+      camY += e.clientY - lastMouse.y;
+      lastMouse = { x: e.clientX, y: e.clientY };
+    }
+    const w = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
+    const hit = findNode(w.x, w.y);
+    hoveredNode = hit ? hit.id : null;
+    canvas.style.cursor = hit ? 'pointer' : (isDragging ? 'grabbing' : 'grab');
+    drawGraph();
+  });
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+    const newScale = Math.max(0.3, Math.min(3, camScale * delta));
+    camX = mx - (mx - camX) * (newScale / camScale);
+    camY = my - (my - camY) * (newScale / camScale);
+    camScale = newScale;
+    drawGraph();
+  }, { passive: false });
+
+  // Touch support
+  let lastTouch = null, lastDist = null;
+  canvas.addEventListener('touchstart', e => { e.preventDefault(); if (e.touches.length===1) lastTouch={x:e.touches[0].clientX,y:e.touches[0].clientY}; if (e.touches.length===2) lastDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY); });
+  canvas.addEventListener('touchmove', e => { e.preventDefault(); if (e.touches.length===1&&lastTouch){camX+=e.touches[0].clientX-lastTouch.x;camY+=e.touches[0].clientY-lastTouch.y;lastTouch={x:e.touches[0].clientX,y:e.touches[0].clientY};drawGraph();}if(e.touches.length===2&&lastDist){const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);const scale=Math.max(0.3,Math.min(3,camScale*(d/lastDist)));camScale=scale;lastDist=d;drawGraph();}},{passive:false});
+  canvas.addEventListener('touchend', e => { e.preventDefault(); if (e.changedTouches.length===1&&lastTouch){ const rect=canvas.getBoundingClientRect(); const t=e.changedTouches[0]; const w=screenToWorld(t.clientX-rect.left,t.clientY-rect.top); const hit=findNode(w.x,w.y); if(hit)openNodePanel(hit.id); } lastTouch=null; lastDist=null; });
+
+  document.getElementById('zoom-in').addEventListener('click', () => { camScale=Math.min(3,camScale*1.2); drawGraph(); });
+  document.getElementById('zoom-out').addEventListener('click', () => { camScale=Math.max(0.3,camScale*0.8); drawGraph(); });
+  document.getElementById('zoom-reset').addEventListener('click', () => { camX=canvas.width/2; camY=canvas.height/2; camScale=1; drawGraph(); });
+  document.getElementById('add-node-btn').addEventListener('click', () => openCapture());
+}
+
+function findNode(wx, wy) {
+  for (const node of [...state.nodes].reverse()) {
+    const r = node.isRoot ? 36 : 26;
+    if (Math.hypot(wx - node.x, wy - node.y) < r) return node;
+  }
+  return null;
+}
+
+/* ═══════════════════════════════════════════════
+   NODE DETAIL PANEL
+   ═══════════════════════════════════════════════ */
+let currentNodeId = null;
+
+function openNodePanel(nodeId) {
+  const node = getNode(nodeId);
+  if (!node) return;
+  currentNodeId = nodeId;
+  const f = node.field ? FIELDS[node.field] : { color: '#7F77DD', label: '기타' };
+
+  document.getElementById('panel-dot').style.background = f.color;
+  document.getElementById('panel-title').textContent = node.label;
+  document.getElementById('panel-content').textContent = node.content || '—';
+
+  renderPanelTasks(node);
+  renderPanelProgress(node);
+  renderConnected(node);
+
+  document.getElementById('node-panel').classList.add('open');
+
+  // Switch to graph view if not already
+  if (!document.getElementById('graph-view').classList.contains('active')) {
+    document.querySelector('[data-view="graph-view"]').click();
+  }
+}
+
+function renderPanelProgress(node) {
+  const total = node.tasks.length;
+  const done = node.tasks.filter(t => t.done).length;
+  const pct = total === 0 ? 0 : Math.round(done / total * 100);
+  const fill = document.getElementById('panel-prog-fill');
+  fill.style.width = pct + '%';
+  const color = node.field ? FIELDS[node.field].color : '#7F77DD';
+  fill.style.background = pct === 100 ? '#639922' : color;
+  document.getElementById('panel-prog-text').textContent = `${done} / ${total} 완료`;
+  document.getElementById('panel-prog-pct').textContent = pct + '%';
+}
+
+function renderPanelTasks(node) {
+  const list = document.getElementById('panel-tasks');
+  list.innerHTML = '';
+  const color = node.field ? FIELDS[node.field].color : '#7F77DD';
+  node.tasks.forEach(t => {
+    const el = document.createElement('div');
+    el.className = 'task-item';
+    el.innerHTML = `
+      <div class="checkbox${t.done?' checked':''}" style="${t.done?'background:'+color+';border-color:'+color:''}"></div>
+      <div class="task-text${t.done?' done':''}">${t.text}</div>
+    `;
+    el.querySelector('.checkbox').addEventListener('click', () => {
+      toggleTask(node.id, t.id);
+      const updated = getNode(node.id);
+      renderPanelTasks(updated);
+      renderPanelProgress(updated);
+      renderCardView();
+      drawGraph();
+    });
+    list.appendChild(el);
+  });
+}
+
+function renderConnected(node) {
+  const el = document.getElementById('panel-connected');
+  el.innerHTML = '';
+  (node.connectedIds || []).forEach(cid => {
+    const n = getNode(cid);
+    if (!n) return;
+    const chip = document.createElement('div');
+    chip.className = 'conn-chip';
+    chip.textContent = n.label;
+    chip.addEventListener('click', () => openNodePanel(cid));
+    el.appendChild(chip);
+  });
+  if (!node.connectedIds.length) el.innerHTML = '<span style="color:var(--text3);font-size:12px">연결된 노드 없음</span>';
+}
+
+document.getElementById('panel-close').addEventListener('click', () => {
+  document.getElementById('node-panel').classList.remove('open');
+  currentNodeId = null;
+});
+
+document.getElementById('add-task-btn').addEventListener('click', () => {
+  const text = prompt('할 일을 입력하세요:');
+  if (!text || !text.trim()) return;
+  const node = getNode(currentNodeId);
+  if (!node) return;
+  const newTask = { id: 't' + Date.now(), text: text.trim(), done: false };
+  updateNode(currentNodeId, { tasks: [...node.tasks, newTask] });
+  const updated = getNode(currentNodeId);
+  renderPanelTasks(updated);
+  renderPanelProgress(updated);
+  renderCardView();
+  drawGraph();
+  showToast('할 일이 추가되었습니다');
+});
+
+/* ═══════════════════════════════════════════════
+   QUICK CAPTURE ⌘K
+   ═══════════════════════════════════════════════ */
+let selectedField = 'work';
+
+function openCapture() {
+  document.getElementById('capture-overlay').classList.add('open');
+  document.getElementById('capture-input').value = '';
+  document.getElementById('capture-save').disabled = true;
+  setTimeout(() => document.getElementById('capture-input').focus(), 50);
+}
+function closeCapture() { document.getElementById('capture-overlay').classList.remove('open'); }
+
+document.getElementById('open-capture-btn').addEventListener('click', openCapture);
+document.getElementById('capture-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeCapture(); });
+
+document.querySelectorAll('.field-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    selectedField = chip.dataset.field;
+    document.querySelectorAll('.field-chip').forEach(c => {
+      c.classList.toggle('sel', c === chip);
+      c.classList.remove('work','yt','learn','health','money');
+      if (c === chip) c.classList.add(selectedField);
+    });
+  });
+});
+
+const captureInput = document.getElementById('capture-input');
+captureInput.addEventListener('input', () => {
+  document.getElementById('capture-save').disabled = captureInput.value.trim() === '';
+});
+captureInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && captureInput.value.trim()) saveCapture();
+  if (e.key === 'Escape') closeCapture();
+});
+document.getElementById('capture-save').addEventListener('click', saveCapture);
+
+function saveCapture() {
+  const text = captureInput.value.trim();
+  if (!text) return;
+  const f = FIELDS[selectedField];
+  const parentNode = getNode(selectedField);
+  const newId = 'node-' + Date.now();
+  const angle = Math.random() * Math.PI * 2;
+  const dist = 140 + Math.random() * 80;
+  const px = parentNode ? parentNode.x : 0;
+  const py = parentNode ? parentNode.y : 0;
+  const newNode = {
+    id: newId, label: text.length > 8 ? text.slice(0, 8) + '…' : text,
+    field: selectedField, content: text,
+    tasks: [], connectedIds: [selectedField],
+    x: px + Math.cos(angle) * dist, y: py + Math.sin(angle) * dist
+  };
+  if (parentNode) {
+    updateNode(selectedField, { connectedIds: [...new Set([...parentNode.connectedIds, newId])] });
+  }
+  state.nodes.push(newNode);
+  saveData();
+  closeCapture();
+  renderCardView();
+  drawGraph();
+  showToast(`"${newNode.label}" 노드가 ${f.label}에 추가되었습니다`);
+  setTimeout(() => openNodePanel(newId), 300);
+}
+
+/* ═══════════════════════════════════════════════
+   KEYBOARD SHORTCUTS
+   ═══════════════════════════════════════════════ */
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); openCapture(); }
+  if (e.key === 'Escape') { closeCapture(); document.getElementById('node-panel').classList.remove('open'); }
+});
+
+/* ═══════════════════════════════════════════════
+   TOAST
+   ═══════════════════════════════════════════════ */
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+/* ═══════════════════════════════════════════════
+   RESIZE
+   ═══════════════════════════════════════════════ */
+window.addEventListener('resize', () => {
+  if (document.getElementById('graph-view').classList.contains('active') && canvas) {
+    canvas.width = canvas.parentElement.clientWidth;
+    canvas.height = canvas.parentElement.clientHeight;
+    drawGraph();
+  }
+});
+
+/* ═══════════════════════════════════════════════
+   KANBAN BOARD
+   ═══════════════════════════════════════════════ */
+const KANBAN_COLS = {
+  yt:     [{ id:'idea', name:'아이디어', color:'#5a5a72' }, { id:'script', name:'기획·스크립트', color:'#1D9E75' }, { id:'shoot', name:'촬영·편집', color:'#378ADD' }, { id:'done', name:'업로드 완료', color:'#639922' }],
+  work:   [{ id:'todo', name:'할 일', color:'#5a5a72' }, { id:'doing', name:'진행 중', color:'#7F77DD' }, { id:'review', name:'검토 중', color:'#BA7517' }, { id:'done', name:'완료', color:'#639922' }],
+  learn:  [{ id:'todo', name:'수강 예정', color:'#5a5a72' }, { id:'doing', name:'수강 중', color:'#378ADD' }, { id:'review', name:'복습', color:'#BA7517' }, { id:'done', name:'완료', color:'#639922' }],
+  health: [{ id:'todo', name:'계획', color:'#5a5a72' }, { id:'doing', name:'진행 중', color:'#639922' }, { id:'review', name:'점검', color:'#BA7517' }, { id:'done', name:'달성', color:'#639922' }],
+  money:  [{ id:'todo', name:'계획', color:'#5a5a72' }, { id:'doing', name:'진행 중', color:'#BA7517' }, { id:'review', name:'검토', color:'#378ADD' }, { id:'done', name:'완료', color:'#639922' }],
+};
+
+let currentKanbanField = 'yt';
+let dragCard = null, dragFromCol = null;
+
+function renderKanbanSelector() {
+  const sel = document.getElementById('kanban-selector');
+  sel.innerHTML = '';
+  Object.entries(FIELDS).forEach(([key, f]) => {
+    const btn = document.createElement('button');
+    btn.className = `kanban-tab ${key}${key === currentKanbanField ? ' active' : ''}`;
+    btn.textContent = f.icon + ' ' + f.label;
+    btn.addEventListener('click', () => { currentKanbanField = key; renderKanban(); });
+    sel.appendChild(btn);
+  });
+}
+
+function renderKanban() {
+  renderKanbanSelector();
+  const board = document.getElementById('kanban-board');
+  board.innerHTML = '';
+  const cols = KANBAN_COLS[currentKanbanField] || KANBAN_COLS.work;
+  const cards = state.kanban[currentKanbanField] || [];
+
+  cols.forEach(col => {
+    const colCards = cards.filter(c => c.col === col.id);
+    const colEl = document.createElement('div');
+    colEl.className = 'kanban-col';
+    colEl.dataset.col = col.id;
+
+    colEl.innerHTML = `
+      <div class="col-header">
+        <div class="col-dot" style="background:${col.color}"></div>
+        <div class="col-name">${col.name}</div>
+        <div class="col-count">${colCards.length}</div>
+      </div>
+      <div class="col-cards" data-col="${col.id}"></div>
+      <div class="col-add"><button class="col-add-btn" data-col="${col.id}">＋ 추가</button></div>
+    `;
+    board.appendChild(colEl);
+
+    const cardsEl = colEl.querySelector('.col-cards');
+    colCards.forEach(card => {
+      cardsEl.appendChild(buildKanbanCard(card));
+    });
+
+    // Drag over col
+    colEl.addEventListener('dragover', e => { e.preventDefault(); colEl.classList.add('drag-over'); });
+    colEl.addEventListener('dragleave', () => colEl.classList.remove('drag-over'));
+    colEl.addEventListener('drop', e => {
+      e.preventDefault();
+      colEl.classList.remove('drag-over');
+      if (!dragCard) return;
+      const cards = state.kanban[currentKanbanField];
+      const idx = cards.findIndex(c => c.id === dragCard);
+      if (idx >= 0) { cards[idx].col = col.id; saveData(); renderKanban(); showToast(`카드를 "${col.name}"으로 이동했습니다`); }
+    });
+
+    colEl.querySelector('.col-add-btn').addEventListener('click', () => openKanbanCardModal(null, col.id));
+  });
+}
+
+function buildKanbanCard(card) {
+  const el = document.createElement('div');
+  el.className = 'kanban-card';
+  el.draggable = true;
+  const total = card.tasks.length, done = card.tasks.filter(t=>t.done).length;
+  const pct = total > 0 ? Math.round(done/total*100) : null;
+  const f = FIELDS[currentKanbanField];
+  el.innerHTML = `
+    <div class="kc-title">${card.title}</div>
+    ${card.note ? `<div class="kc-tags"><span class="kc-tag" style="background:${f.color}22;color:${f.color}">${card.note}</span></div>` : ''}
+    ${pct !== null ? `<div class="kc-prog"><div class="kc-prog-label">${done}/${total} 완료</div><div class="kc-prog-bar"><div class="kc-prog-fill" style="width:${pct}%;background:${pct===100?'#639922':f.color}"></div></div></div>` : ''}
+  `;
+  el.addEventListener('dragstart', () => { dragCard = card.id; dragFromCol = card.col; el.classList.add('dragging'); });
+  el.addEventListener('dragend', () => { dragCard = null; el.classList.remove('dragging'); document.querySelectorAll('.kanban-col').forEach(c=>c.classList.remove('drag-over')); });
+  el.addEventListener('click', () => openKanbanCardModal(card, card.col));
+  // Touch drag (mobile)
+  let touchStart = null;
+  el.addEventListener('touchstart', e => { touchStart = { x:e.touches[0].clientX, y:e.touches[0].clientY }; }, {passive:true});
+  el.addEventListener('touchend', e => {
+    if (!touchStart) return;
+    const dx = Math.abs(e.changedTouches[0].clientX - touchStart.x);
+    const dy = Math.abs(e.changedTouches[0].clientY - touchStart.y);
+    if (dx < 8 && dy < 8) openKanbanCardModal(card, card.col);
+    touchStart = null;
+  });
+  return el;
+}
+
+// Kanban card modal (reuse event modal)
+let editingCardId = null, editingCardColDefault = null;
+function openKanbanCardModal(card, defaultCol) {
+  editingCardId = card ? card.id : null;
+  editingCardColDefault = defaultCol;
+  document.getElementById('event-modal-title').textContent = card ? '카드 편집' : '카드 추가';
+  document.getElementById('event-name').value = card ? card.title : '';
+  document.getElementById('event-field').value = currentKanbanField;
+  document.getElementById('event-date').style.display = 'none';
+  document.getElementById('event-note').value = card ? (card.note || '') : '';
+  document.getElementById('event-delete').style.display = card ? 'block' : 'none';
+  document.getElementById('event-modal-overlay').dataset.mode = 'kanban';
+  document.getElementById('event-modal-overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('event-name').focus(),60);
+}
+
+document.getElementById('add-kanban-card-btn').addEventListener('click', () => openKanbanCardModal(null, KANBAN_COLS[currentKanbanField][0].id));
+
+/* ═══════════════════════════════════════════════
+   CALENDAR
+   ═══════════════════════════════════════════════ */
+const today = new Date();
+let calYear = today.getFullYear(), calMonth = today.getMonth();
+let activeFilters = new Set(Object.keys(FIELDS));
+
+function renderCalFilters() {
+  const el = document.getElementById('cal-filters');
+  el.innerHTML = '';
+  Object.entries(FIELDS).forEach(([key, f]) => {
+    const btn = document.createElement('button');
+    btn.className = `cal-filter ${key}${activeFilters.has(key) ? ' on' : ''}`;
+    btn.dataset.field = key;
+    btn.innerHTML = `<span class="cal-filter-dot" style="background:${f.color}"></span>${f.label}`;
+    btn.addEventListener('click', () => {
+      if (activeFilters.has(key)) { if (activeFilters.size > 1) activeFilters.delete(key); }
+      else activeFilters.add(key);
+      renderCalFilters(); renderCalGrid();
+    });
+    el.appendChild(btn);
+  });
+}
+
+function renderCalHeader() {
+  document.getElementById('cal-month-label').textContent =
+    `${calYear}년 ${calMonth+1}월`;
+}
+
+function renderCalGrid() {
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const daysInPrev = new Date(calYear, calMonth, 0).getDate();
+  const todayStr = today.toISOString().slice(0,10);
+  const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
+
+  for (let i = 0; i < totalCells; i++) {
+    let day, month, year, isOther = false;
+    if (i < firstDay) { day = daysInPrev - firstDay + 1 + i; month = calMonth - 1; year = calYear; isOther = true; }
+    else if (i >= firstDay + daysInMonth) { day = i - firstDay - daysInMonth + 1; month = calMonth + 1; year = calYear; isOther = true; }
+    else { day = i - firstDay + 1; month = calMonth; year = calYear; }
+    const realMonth = ((month % 12) + 12) % 12;
+    const realYear = year + Math.floor(month / 12);
+    const dateStr = `${realYear}-${String(realMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const isToday = dateStr === todayStr;
+
+    const cell = document.createElement('div');
+    cell.className = `cal-day${isOther?' other-month':''}${isToday?' today':''}`;
+    cell.innerHTML = `<div class="day-num">${day}</div>`;
+
+    // Events
+    const dayEvents = (state.events || []).filter(ev => ev.date === dateStr && activeFilters.has(ev.field));
+    const shown = dayEvents.slice(0, 3);
+    shown.forEach(ev => {
+      const f = FIELDS[ev.field];
+      const evEl = document.createElement('div');
+      evEl.className = 'cal-event';
+      evEl.style.cssText = `background:${f.color}22;color:${f.color}`;
+      evEl.textContent = ev.title;
+      evEl.addEventListener('click', e => { e.stopPropagation(); openEventModal(ev, dateStr); });
+      cell.appendChild(evEl);
+    });
+    if (dayEvents.length > 3) {
+      const more = document.createElement('div');
+      more.className = 'cal-more'; more.textContent = `+${dayEvents.length-3}개 더`;
+      cell.appendChild(more);
+    }
+
+    cell.addEventListener('click', () => openEventModal(null, dateStr));
+    grid.appendChild(cell);
+  }
+}
+
+document.getElementById('cal-prev').addEventListener('click', () => { calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCalHeader(); renderCalGrid(); });
+document.getElementById('cal-next').addEventListener('click', () => { calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCalHeader(); renderCalGrid(); });
+document.getElementById('cal-today-btn').addEventListener('click', () => { calYear=today.getFullYear(); calMonth=today.getMonth(); renderCalHeader(); renderCalGrid(); });
+
+/* ═══════════════════════════════════════════════
+   EVENT / CARD MODAL (공용)
+   ═══════════════════════════════════════════════ */
+let editingEventId = null;
+
+function openEventModal(ev, dateStr) {
+  editingEventId = ev ? ev.id : null;
+  document.getElementById('event-modal-title').textContent = ev ? '일정 편집' : '일정 추가';
+  document.getElementById('event-name').value = ev ? ev.title : '';
+  document.getElementById('event-field').value = ev ? ev.field : 'work';
+  document.getElementById('event-date').style.display = '';
+  document.getElementById('event-date').value = ev ? ev.date : (dateStr || getTodayPlus(0));
+  document.getElementById('event-note').value = ev ? (ev.note || '') : '';
+  document.getElementById('event-delete').style.display = ev ? 'block' : 'none';
+  document.getElementById('event-modal-overlay').dataset.mode = 'event';
+  document.getElementById('event-modal-overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('event-name').focus(),60);
+}
+
+function closeEventModal() { document.getElementById('event-modal-overlay').classList.remove('open'); editingEventId=null; editingCardId=null; }
+
+document.getElementById('event-cancel').addEventListener('click', closeEventModal);
+document.getElementById('event-modal-overlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeEventModal(); });
+
+document.getElementById('event-save').addEventListener('click', () => {
+  const mode = document.getElementById('event-modal-overlay').dataset.mode;
+  const name = document.getElementById('event-name').value.trim();
+  if (!name) { showToast('제목을 입력하세요'); return; }
+  const field = document.getElementById('event-field').value;
+  const note = document.getElementById('event-note').value.trim();
+
+  if (mode === 'event') {
+    const date = document.getElementById('event-date').value;
+    if (!state.events) state.events = [];
+    if (editingEventId) {
+      const idx = state.events.findIndex(e=>e.id===editingEventId);
+      if (idx>=0) state.events[idx] = {...state.events[idx], title:name, field, date, note};
+    } else {
+      state.events.push({ id:'ev'+Date.now(), title:name, field, date, note });
+    }
+    saveData(); closeEventModal(); renderCalGrid(); showToast(editingEventId?'일정이 수정되었습니다':'일정이 추가되었습니다');
+  } else {
+    // kanban card
+    const col = editingCardColDefault || KANBAN_COLS[currentKanbanField][0].id;
+    if (!state.kanban[field]) state.kanban[field] = [];
+    if (editingCardId) {
+      const idx = state.kanban[field].findIndex(c=>c.id===editingCardId);
+      if (idx>=0) state.kanban[field][idx] = {...state.kanban[field][idx], title:name, note};
+    } else {
+      state.kanban[field].push({ id:'kc'+Date.now(), col, title:name, note, tasks:[] });
+    }
+    saveData(); closeEventModal();
+    if (field !== currentKanbanField) { currentKanbanField = field; }
+    renderKanban(); showToast(editingCardId?'카드가 수정되었습니다':'카드가 추가되었습니다');
+  }
+});
+
+document.getElementById('event-delete').addEventListener('click', () => {
+  const mode = document.getElementById('event-modal-overlay').dataset.mode;
+  if (mode === 'event' && editingEventId) {
+    state.events = state.events.filter(e=>e.id!==editingEventId);
+    saveData(); closeEventModal(); renderCalGrid(); showToast('일정이 삭제되었습니다');
+  } else if (mode === 'kanban' && editingCardId) {
+    state.kanban[currentKanbanField] = state.kanban[currentKanbanField].filter(c=>c.id!==editingCardId);
+    saveData(); closeEventModal(); renderKanban(); showToast('카드가 삭제되었습니다');
+  }
+});
+
+/* ─── INIT ─── */
+renderCardView();
+renderKanban();
+renderCalFilters();
+renderCalHeader();
+renderCalGrid();
+</script>
+</body>
+</html>
