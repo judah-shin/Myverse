@@ -10,22 +10,22 @@
 /* ─── Reset & Base ─── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  /* ── 네이비 팔레트: 가장 어두운 #404C7E → 위로 갈수록 밝아짐 ── */
-  --bg:  #404C7E;   /* 가장 어두운 베이스 */
-  --bg2: #5260A0;   /* 카드·패널 배경 */
-  --bg3: #6372B8;   /* 인풋·호버 배경 */
-  --border:  rgba(255,255,255,0.13);
-  --border2: rgba(255,255,255,0.22);
-  --text:  #F0F2FF;
-  --text2: #C4CAF0;
-  --text3: #8E98CC;
-  --accent:  #A8C4FF;
-  --accent2: #C3D8FF;
-  --c-work:   #A8C4FF; --c-work-bg:   rgba(168,196,255,0.15); --c-work-bg2:  rgba(168,196,255,0.25);
-  --c-yt:     #3DD6A3; --c-yt-bg:     rgba(61,214,163,0.13);  --c-yt-bg2:   rgba(61,214,163,0.22);
-  --c-learn:  #7EC8FA; --c-learn-bg:  rgba(126,200,250,0.13); --c-learn-bg2: rgba(126,200,250,0.22);
-  --c-health: #7ED67E; --c-health-bg: rgba(126,214,126,0.13); --c-health-bg2:rgba(126,214,126,0.22);
-  --c-money:  #FFCA6E; --c-money-bg:  rgba(255,202,110,0.13); --c-money-bg2: rgba(255,202,110,0.22);
+  /* ── 차분한 딥 네이비 팔레트 ── */
+  --bg:  #1E2642;   /* 페이지 배경 — 깊고 차분한 네이비 */
+  --bg2: #28305A;   /* 카드·패널 배경 */
+  --bg3: #333D6E;   /* 인풋·호버 배경 */
+  --border:  rgba(255,255,255,0.09);
+  --border2: rgba(255,255,255,0.16);
+  --text:  #E8ECF8;
+  --text2: #A8B4D8;
+  --text3: #6470A0;
+  --accent:  #7B9FE0;
+  --accent2: #9AB8F0;
+  --c-work:   #7B9FE0; --c-work-bg:   rgba(123,159,224,0.13); --c-work-bg2:  rgba(123,159,224,0.22);
+  --c-yt:     #3CBFA0; --c-yt-bg:     rgba(60,191,160,0.12);  --c-yt-bg2:   rgba(60,191,160,0.20);
+  --c-learn:  #60AADC; --c-learn-bg:  rgba(96,170,220,0.12);  --c-learn-bg2: rgba(96,170,220,0.20);
+  --c-health: #68C268; --c-health-bg: rgba(104,194,104,0.12); --c-health-bg2:rgba(104,194,104,0.20);
+  --c-money:  #D4A84B; --c-money-bg:  rgba(212,168,75,0.12);  --c-money-bg2: rgba(212,168,75,0.20);
   --r: 10px; --r2: 14px; --r3: 18px;
   font-size: 16px;
 }
@@ -292,6 +292,43 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .modal-delete { padding: 7px 14px; border-radius: var(--r); font-size: 13px; background: none; border: 1px solid rgba(220,60,60,0.3); color: #e05a5a; cursor: pointer; transition: all .15s; margin-right: auto; }
 .modal-delete:hover { background: rgba(220,60,60,0.1); }
 
+/* ─── Hierarchical Task Tree ─── */
+.project-block { margin-bottom: 14px; border: 1px solid var(--border2); border-radius: var(--r2); overflow: hidden; }
+.project-header { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--bg3); cursor: pointer; user-select: none; }
+.project-toggle { font-size: 11px; color: var(--text3); transition: transform .15s; }
+.project-toggle.open { transform: rotate(90deg); }
+.project-name { font-size: 13px; font-weight: 600; flex: 1; }
+.project-status { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
+.project-body { padding: 8px; display: none; }
+.project-body.open { display: block; }
+
+.todo-item { margin-bottom: 6px; border-radius: var(--r); overflow: hidden; }
+.todo-row { display: flex; align-items: center; gap: 7px; padding: 7px 9px; background: var(--bg2); cursor: pointer; }
+.todo-row:hover { background: var(--bg3); }
+.todo-toggle { font-size: 10px; color: var(--text3); width: 12px; text-align: center; transition: transform .15s; flex-shrink: 0; }
+.todo-toggle.open { transform: rotate(90deg); }
+.todo-text { font-size: 12px; flex: 1; }
+.todo-text.done { text-decoration: line-through; color: var(--text3); }
+.todo-plans { padding: 4px 8px 4px 20px; background: var(--bg); display: none; }
+.todo-plans.open { display: block; }
+
+.plan-item { margin-bottom: 4px; border-radius: 6px; overflow: hidden; }
+.plan-row { display: flex; align-items: center; gap: 7px; padding: 6px 8px; background: var(--bg2); cursor: pointer; }
+.plan-row:hover { background: var(--bg3); }
+.plan-toggle { font-size: 9px; color: var(--text3); width: 10px; text-align: center; transition: transform .15s; flex-shrink: 0; }
+.plan-toggle.open { transform: rotate(90deg); }
+.plan-text { font-size: 11px; flex: 1; }
+.plan-text.done { text-decoration: line-through; color: var(--text3); }
+.plan-memos { padding: 4px 6px 4px 22px; background: var(--bg); display: none; }
+.plan-memos.open { display: block; }
+
+.memo-item { display: flex; gap: 6px; padding: 5px 8px; background: var(--bg2); border-radius: 6px; margin-bottom: 3px; border-left: 2px solid var(--accent); }
+.memo-icon { font-size: 11px; color: var(--text3); flex-shrink: 0; margin-top: 1px; }
+.memo-text { font-size: 11px; color: var(--text2); line-height: 1.6; flex: 1; }
+
+.add-child-btn { display: flex; align-items: center; gap: 5px; padding: 5px 8px; font-size: 11px; color: var(--text3); background: none; border: 1px dashed var(--border2); border-radius: 6px; cursor: pointer; width: 100%; margin-top: 4px; transition: all .12s; }
+.add-child-btn:hover { color: var(--accent2); border-color: var(--accent); }
+
 /* ─── Responsive ─── */
 @media (max-width: 768px) {
   .topbar { padding: 8px 12px; }
@@ -363,9 +400,11 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
             <div class="panel-content" id="panel-content">—</div>
           </div>
           <div class="panel-section">
-            <div class="panel-label">할 일</div>
-            <div class="task-list" id="panel-tasks"></div>
-            <div class="add-task" id="add-task-btn">＋ 할 일 추가</div>
+            <div class="panel-label" style="display:flex;align-items:center;justify-content:space-between">
+              <span>프로젝트 / 할 일</span>
+              <button class="add-child-btn" id="add-project-btn" style="width:auto;border:none;padding:2px 8px;font-size:11px;background:var(--bg3)">＋ 프로젝트</button>
+            </div>
+            <div id="panel-projects"></div>
           </div>
           <div class="panel-section">
             <div class="panel-label">연결된 노드</div>
@@ -487,24 +526,79 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
    MYVERSE DATA LAYER
    ═══════════════════════════════════════════════ */
 const DEFAULT_FIELDS = {
-  work:   { label: '업무',  icon: '💼', color: '#A8C4FF', bg: 'rgba(168,196,255,0.15)' },
-  yt:     { label: '유튜브', icon: '🎬', color: '#3DD6A3', bg: 'rgba(61,214,163,0.13)' },
-  learn:  { label: '학습',  icon: '📚', color: '#7EC8FA', bg: 'rgba(126,200,250,0.13)' },
-  health: { label: '건강',  icon: '💪', color: '#7ED67E', bg: 'rgba(126,214,126,0.13)' },
-  money:  { label: '금융',  icon: '💰', color: '#FFCA6E', bg: 'rgba(255,202,110,0.13)' },
+  work:   { label: '업무',  icon: '💼', color: '#7B9FE0', bg: 'rgba(123,159,224,0.13)' },
+  yt:     { label: '유튜브', icon: '🎬', color: '#3CBFA0', bg: 'rgba(60,191,160,0.12)' },
+  learn:  { label: '학습',  icon: '📚', color: '#60AADC', bg: 'rgba(96,170,220,0.12)' },
+  health: { label: '건강',  icon: '💪', color: '#68C268', bg: 'rgba(104,194,104,0.12)' },
+  money:  { label: '금융',  icon: '💰', color: '#D4A84B', bg: 'rgba(212,168,75,0.12)' },
 };
 let FIELDS = { ...DEFAULT_FIELDS };
 
 const DEFAULT_DATA = {
   nodes: [
     { id: 'me', label: '나', field: null, content: 'Myverse의 중심입니다.', tasks: [], connectedIds: ['work','yt','learn','health','money'], x: 0, y: 0, isRoot: true },
-    { id: 'work',   label: '업무',  field: 'work',   content: '현재 진행중인 업무 프로젝트들입니다.', tasks: [{id:'t1',text:'Q2 보고서 초안',done:false},{id:'t2',text:'미팅 준비',done:true}], connectedIds:['me','w-report','w-meeting'], x:-220, y:-120 },
+    { id: 'work', label: '업무', field: 'work', content: '현재 진행중인 업무 프로젝트들입니다.', connectedIds:['me','w-church','w-report'], x:-220, y:-120,
+      tasks: [],
+      projects: [
+        {
+          id: 'wp1', title: '교회 행정 업무', status: 'doing',
+          todos: [
+            {
+              id: 'wt1', text: '온세대 예배 준비', done: false,
+              plans: [
+                {
+                  id: 'wpl1', text: '타 교회 온세대 예배 정보 수집', done: false,
+                  memos: [
+                    { id: 'wm1', text: '○○교회 온세대 예배: 전 연령 통합 찬양 15분 + 연령별 분반 30분 구성. 특히 유초등부와 장년부가 같은 공간에서 시작하는 방식이 인상적.' }
+                  ]
+                },
+                {
+                  id: 'wpl2', text: '예배 순서 초안 작성', done: false,
+                  memos: []
+                },
+                {
+                  id: 'wpl3', text: '필요 장비 및 인력 파악', done: true,
+                  memos: [
+                    { id: 'wm2', text: '빔프로젝터 1대, 마이크 4개, 진행 담당자 2명 필요.' }
+                  ]
+                }
+              ]
+            },
+            {
+              id: 'wt2', text: '주보 제작', done: true,
+              plans: [
+                { id: 'wpl4', text: '내용 취합', done: true, memos: [] },
+                { id: 'wpl5', text: '디자인 편집', done: true, memos: [] }
+              ]
+            }
+          ]
+        },
+        {
+          id: 'wp2', title: '2분기 보고서', status: 'todo',
+          todos: [
+            {
+              id: 'wt3', text: '데이터 수집', done: true,
+              plans: [
+                { id: 'wpl6', text: '각 부서 실적 취합', done: true, memos: [{ id:'wm3', text:'3월까지 데이터 수집 완료. 4월 데이터는 추가 필요.' }] }
+              ]
+            },
+            {
+              id: 'wt4', text: '초안 작성', done: false,
+              plans: [
+                { id: 'wpl7', text: '목차 구성', done: false, memos: [] },
+                { id: 'wpl8', text: '본문 작성', done: false, memos: [] }
+              ]
+            }
+          ]
+        }
+      ]
+    },
     { id: 'yt',     label: '유튜브', field: 'yt',     content: '유튜브 채널 관련 작업입니다.', tasks: [{id:'t3',text:'스크립트 완성',done:false},{id:'t4',text:'썸네일 제작',done:false}], connectedIds:['me','yt-script'], x:220, y:-120 },
     { id: 'learn',  label: '학습',  field: 'learn',  content: '현재 수강 중인 강의와 학습 자료입니다.', tasks: [{id:'t5',text:'React 3강 수강',done:true},{id:'t6',text:'복습 노트 정리',done:false}], connectedIds:['me'], x:-260, y:100 },
     { id: 'health', label: '건강',  field: 'health', content: '운동과 건강 관리 루틴입니다.', tasks: [{id:'t7',text:'아침 운동',done:true},{id:'t8',text:'수분 섭취',done:true},{id:'t9',text:'저녁 스트레칭',done:false}], connectedIds:['me'], x:260, y:100 },
     { id: 'money',  label: '금융',  field: 'money',  content: '저축 목표와 지출 관리입니다.', tasks: [{id:'ta',text:'월 예산 점검',done:false}], connectedIds:['me'], x:0, y:200 },
-    { id: 'w-report', label: 'Q2 보고서', field: 'work', content: '2분기 성과 보고서 작성', tasks: [{id:'tb',text:'데이터 수집',done:true},{id:'tc',text:'초안 작성',done:false},{id:'td',text:'검토',done:false}], connectedIds:['work'], x:-360, y:-60 },
-    { id: 'w-meeting', label: '팀 미팅', field: 'work', content: '주간 팀 미팅 준비', tasks: [{id:'te',text:'아젠다 작성',done:false}], connectedIds:['work'], x:-320, y:-200 },
+    { id: 'w-church', label: '교회행정', field: 'work', content: '교회 행정 업무 관련 노드입니다.', tasks: [], projects: [], connectedIds:['work'], x:-380, y:-180 },
+    { id: 'w-report', label: '2분기보고서', field: 'work', content: '2분기 성과 보고서 작성', tasks: [], projects: [], connectedIds:['work'], x:-360, y:-60 },
     { id: 'yt-script', label: 'Myverse 소개', field: 'yt', content: '채널 첫 영상 스크립트', tasks: [{id:'tf',text:'아이디어 정리',done:true},{id:'tg',text:'스크립트 초안',done:false},{id:'th',text:'검토',done:false}], connectedIds:['yt'], x:380, y:-60 },
   ],
   kanban: {
@@ -541,7 +635,17 @@ function loadData() {
     const raw = localStorage.getItem('myverse_data');
     if (!raw) return JSON.parse(JSON.stringify(DEFAULT_DATA));
     const parsed = JSON.parse(raw);
-    if (!parsed.kanban) parsed.kanban = JSON.parse(JSON.stringify(DEFAULT_DATA.kanban));
+    // kanban: 키가 없거나 전체가 비어있으면 DEFAULT로 초기화
+    if (!parsed.kanban) {
+      parsed.kanban = JSON.parse(JSON.stringify(DEFAULT_DATA.kanban));
+    } else {
+      // 각 기본 분야 칸반이 빈 배열이면 샘플로 채워주기
+      Object.keys(DEFAULT_DATA.kanban).forEach(k => {
+        if (!parsed.kanban[k] || parsed.kanban[k].length === 0) {
+          parsed.kanban[k] = JSON.parse(JSON.stringify(DEFAULT_DATA.kanban[k]));
+        }
+      });
+    }
     if (!parsed.events) parsed.events = JSON.parse(JSON.stringify(DEFAULT_DATA.events));
     if (!parsed.customFields) parsed.customFields = {};
     return parsed;
@@ -582,20 +686,35 @@ navTabs.forEach(tab => {
    CARD VIEW
    ═══════════════════════════════════════════════ */
 function getTodayTasks() {
-  const tasks = [];
+  const items = [];
   state.nodes.forEach(node => {
     if (!node.field) return;
-    node.tasks.forEach(t => {
-      if (!t.done) tasks.push({ ...t, nodeId: node.id, field: node.field, nodeLabel: node.label });
+    // 계층형 projects에서 미완료 할 일 수집
+    (node.projects || []).forEach(proj => {
+      (proj.todos || []).forEach(todo => {
+        if (!todo.done) items.push({ id: todo.id, text: todo.text, done: todo.done, nodeId: node.id, field: node.field, nodeLabel: node.label });
+      });
+    });
+    // fallback: 구 tasks
+    (node.tasks || []).forEach(t => {
+      if (!t.done) items.push({ ...t, nodeId: node.id, field: node.field, nodeLabel: node.label });
     });
   });
-  return tasks.slice(0, 8);
+  return items.slice(0, 8);
 }
 
 function getFieldProgress(field) {
   const nodes = state.nodes.filter(n => n.field === field);
   let total = 0, done = 0;
-  nodes.forEach(n => { total += n.tasks.length; done += n.tasks.filter(t => t.done).length; });
+  nodes.forEach(n => {
+    (n.projects || []).forEach(proj => {
+      (proj.todos || []).forEach(todo => {
+        total++; if (todo.done) done++;
+        (todo.plans || []).forEach(plan => { total++; if (plan.done) done++; });
+      });
+    });
+    (n.tasks || []).forEach(t => { total++; if (t.done) done++; });
+  });
   return { total, done, pct: total === 0 ? 0 : Math.round(done / total * 100) };
 }
 
@@ -836,56 +955,241 @@ function openNodePanel(nodeId) {
   const node = getNode(nodeId);
   if (!node) return;
   currentNodeId = nodeId;
-  const f = node.field ? FIELDS[node.field] : { color: '#7F77DD', label: '기타' };
+  const f = node.field ? FIELDS[node.field] : { color: '#7B9FE0', label: '기타' };
 
   document.getElementById('panel-dot').style.background = f.color;
   document.getElementById('panel-title').textContent = node.label;
   document.getElementById('panel-content').textContent = node.content || '—';
 
-  renderPanelTasks(node);
   renderPanelProgress(node);
+  renderPanelProjects(node);
   renderConnected(node);
 
   document.getElementById('node-panel').classList.add('open');
-
-  // Switch to graph view if not already
   if (!document.getElementById('graph-view').classList.contains('active')) {
     document.querySelector('[data-view="graph-view"]').click();
   }
 }
 
 function renderPanelProgress(node) {
-  const total = node.tasks.length;
-  const done = node.tasks.filter(t => t.done).length;
+  let total = 0, done = 0;
+  // 계층형 projects 구조 기반 진행률
+  (node.projects || []).forEach(proj => {
+    (proj.todos || []).forEach(todo => {
+      total++;
+      if (todo.done) done++;
+      (todo.plans || []).forEach(plan => {
+        total++;
+        if (plan.done) done++;
+      });
+    });
+  });
+  // fallback: 구 tasks
+  if (total === 0 && node.tasks && node.tasks.length > 0) {
+    total = node.tasks.length;
+    done = node.tasks.filter(t => t.done).length;
+  }
   const pct = total === 0 ? 0 : Math.round(done / total * 100);
   const fill = document.getElementById('panel-prog-fill');
   fill.style.width = pct + '%';
-  const color = node.field ? FIELDS[node.field].color : '#7F77DD';
-  fill.style.background = pct === 100 ? '#639922' : color;
+  const color = node.field ? FIELDS[node.field].color : '#7B9FE0';
+  fill.style.background = pct === 100 ? '#68C268' : color;
   document.getElementById('panel-prog-text').textContent = `${done} / ${total} 완료`;
   document.getElementById('panel-prog-pct').textContent = pct + '%';
 }
 
-function renderPanelTasks(node) {
-  const list = document.getElementById('panel-tasks');
-  list.innerHTML = '';
-  const color = node.field ? FIELDS[node.field].color : '#7F77DD';
-  node.tasks.forEach(t => {
-    const el = document.createElement('div');
-    el.className = 'task-item';
-    el.innerHTML = `
-      <div class="checkbox${t.done?' checked':''}" style="${t.done?'background:'+color+';border-color:'+color:''}"></div>
-      <div class="task-text${t.done?' done':''}">${t.text}</div>
+/* ── 계층형 프로젝트 트리 렌더링 ──
+   구조: 프로젝트 > 할 일 > 세부 계획 > 메모 (최대 4단계, 5번째는 메모 추가)
+*/
+function renderPanelProjects(node) {
+  const container = document.getElementById('panel-projects');
+  if (!container) return;
+  container.innerHTML = '';
+  const color = node.field ? FIELDS[node.field].color : '#7B9FE0';
+  const projects = node.projects || [];
+
+  if (projects.length === 0) {
+    container.innerHTML = `<div style="color:var(--text3);font-size:12px;padding:8px 0">프로젝트가 없습니다. ＋ 프로젝트 버튼으로 추가하세요.</div>`;
+  }
+
+  projects.forEach((proj, pi) => {
+    const block = document.createElement('div');
+    block.className = 'project-block';
+
+    const statusColor = proj.status === 'done' ? '#68C268' : proj.status === 'doing' ? color : '#6470A0';
+    const statusLabel = proj.status === 'done' ? '완료' : proj.status === 'doing' ? '진행중' : '예정';
+
+    block.innerHTML = `
+      <div class="project-header">
+        <span class="project-toggle open">▶</span>
+        <span class="project-name">${proj.title}</span>
+        <span class="project-status" style="background:${statusColor}22;color:${statusColor}">${statusLabel}</span>
+      </div>
+      <div class="project-body open" id="proj-body-${proj.id}"></div>
     `;
-    el.querySelector('.checkbox').addEventListener('click', () => {
-      toggleTask(node.id, t.id);
-      const updated = getNode(node.id);
-      renderPanelTasks(updated);
-      renderPanelProgress(updated);
-      renderCardView();
-      drawGraph();
+    container.appendChild(block);
+
+    const header = block.querySelector('.project-header');
+    const toggle = block.querySelector('.project-toggle');
+    const body = block.querySelector('.project-body');
+    header.addEventListener('click', () => {
+      body.classList.toggle('open');
+      toggle.classList.toggle('open');
     });
-    list.appendChild(el);
+
+    // 할 일 목록
+    (proj.todos || []).forEach((todo, ti) => {
+      const todoEl = document.createElement('div');
+      todoEl.className = 'todo-item';
+      const hasPlans = todo.plans && todo.plans.length > 0;
+      todoEl.innerHTML = `
+        <div class="todo-row">
+          <div class="checkbox${todo.done?' checked':''}" style="${todo.done?'background:'+color+';border-color:'+color:'border-color:'+color+'88'}"></div>
+          <span class="todo-toggle${hasPlans?' open':''}">▶</span>
+          <span class="todo-text${todo.done?' done':''}">${todo.text}</span>
+        </div>
+        <div class="todo-plans${hasPlans?' open':''}"></div>
+      `;
+      body.appendChild(todoEl);
+
+      const todoRow = todoEl.querySelector('.todo-row');
+      const todoToggle = todoEl.querySelector('.todo-toggle');
+      const plansEl = todoEl.querySelector('.todo-plans');
+      const cb = todoEl.querySelector('.checkbox');
+
+      cb.addEventListener('click', e => {
+        e.stopPropagation();
+        todo.done = !todo.done;
+        saveData();
+        renderPanelProjects(getNode(currentNodeId));
+        renderPanelProgress(getNode(currentNodeId));
+        renderCardView(); drawGraph();
+      });
+
+      todoRow.addEventListener('click', e => {
+        if (e.target === cb) return;
+        plansEl.classList.toggle('open');
+        todoToggle.classList.toggle('open');
+      });
+
+      // 세부 계획 목록
+      renderPlans(plansEl, todo, color, proj, node);
+
+      // 세부 계획 추가 버튼
+      const addPlanBtn = document.createElement('button');
+      addPlanBtn.className = 'add-child-btn';
+      addPlanBtn.innerHTML = '＋ 세부 계획 추가';
+      addPlanBtn.addEventListener('click', () => {
+        const text = prompt('세부 계획을 입력하세요:');
+        if (!text || !text.trim()) return;
+        if (!todo.plans) todo.plans = [];
+        todo.plans.push({ id: 'pl' + Date.now(), text: text.trim(), done: false, memos: [] });
+        saveData();
+        renderPanelProjects(getNode(currentNodeId));
+        renderPanelProgress(getNode(currentNodeId));
+        showToast('세부 계획이 추가되었습니다');
+      });
+      plansEl.appendChild(addPlanBtn);
+    });
+
+    // 할 일 추가 버튼
+    const addTodoBtn = document.createElement('button');
+    addTodoBtn.className = 'add-child-btn';
+    addTodoBtn.style.margin = '4px 8px 8px';
+    addTodoBtn.style.width = 'calc(100% - 16px)';
+    addTodoBtn.innerHTML = '＋ 할 일 추가';
+    addTodoBtn.addEventListener('click', () => {
+      const text = prompt('할 일을 입력하세요:');
+      if (!text || !text.trim()) return;
+      if (!proj.todos) proj.todos = [];
+      proj.todos.push({ id: 'td' + Date.now(), text: text.trim(), done: false, plans: [] });
+      saveData();
+      renderPanelProjects(getNode(currentNodeId));
+      renderPanelProgress(getNode(currentNodeId));
+      showToast('할 일이 추가되었습니다');
+    });
+    body.appendChild(addTodoBtn);
+  });
+
+  // 프로젝트 추가 버튼 이벤트
+  const addProjBtn = document.getElementById('add-project-btn');
+  if (addProjBtn) {
+    addProjBtn.onclick = () => {
+      const name = prompt('프로젝트 이름을 입력하세요:');
+      if (!name || !name.trim()) return;
+      const node2 = getNode(currentNodeId);
+      if (!node2) return;
+      if (!node2.projects) node2.projects = [];
+      node2.projects.push({ id: 'wp' + Date.now(), title: name.trim(), status: 'todo', todos: [] });
+      saveData();
+      renderPanelProjects(getNode(currentNodeId));
+      showToast('프로젝트가 추가되었습니다');
+    };
+  }
+}
+
+function renderPlans(plansEl, todo, color, proj, node) {
+  // 기존 plan 항목들 제거 후 재생성 (add 버튼 제외)
+  plansEl.querySelectorAll('.plan-item').forEach(el => el.remove());
+  const insertBefore = plansEl.querySelector('.add-child-btn');
+
+  (todo.plans || []).forEach(plan => {
+    const planEl = document.createElement('div');
+    planEl.className = 'plan-item';
+    const hasMemos = plan.memos && plan.memos.length > 0;
+    planEl.innerHTML = `
+      <div class="plan-row">
+        <div class="checkbox${plan.done?' checked':''}" style="width:14px;height:14px;border-radius:3px;border:1.5px solid ${plan.done?color:color+'88'};display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;${plan.done?'background:'+color:''};font-size:9px;color:white">${plan.done?'✓':''}</div>
+        <span class="plan-toggle${hasMemos?' open':''}">▶</span>
+        <span class="plan-text${plan.done?' done':''}">${plan.text}</span>
+      </div>
+      <div class="plan-memos${hasMemos?' open':''}"></div>
+    `;
+    if (insertBefore) plansEl.insertBefore(planEl, insertBefore);
+    else plansEl.appendChild(planEl);
+
+    const planRow = planEl.querySelector('.plan-row');
+    const planToggle = planEl.querySelector('.plan-toggle');
+    const memosEl = planEl.querySelector('.plan-memos');
+    const planCb = planEl.querySelector('.checkbox');
+
+    planCb.addEventListener('click', e => {
+      e.stopPropagation();
+      plan.done = !plan.done;
+      saveData();
+      renderPanelProjects(getNode(currentNodeId));
+      renderPanelProgress(getNode(currentNodeId));
+      renderCardView(); drawGraph();
+    });
+
+    planRow.addEventListener('click', e => {
+      if (e.target === planCb) return;
+      memosEl.classList.toggle('open');
+      planToggle.classList.toggle('open');
+    });
+
+    // 메모 렌더링
+    (plan.memos || []).forEach(memo => {
+      const memoEl = document.createElement('div');
+      memoEl.className = 'memo-item';
+      memoEl.innerHTML = `<span class="memo-icon">📝</span><span class="memo-text">${memo.text}</span>`;
+      memosEl.appendChild(memoEl);
+    });
+
+    // 메모 추가 버튼
+    const addMemoBtn = document.createElement('button');
+    addMemoBtn.className = 'add-child-btn';
+    addMemoBtn.innerHTML = '＋ 메모 추가';
+    addMemoBtn.addEventListener('click', () => {
+      const text = prompt('메모를 입력하세요:');
+      if (!text || !text.trim()) return;
+      if (!plan.memos) plan.memos = [];
+      plan.memos.push({ id: 'mo' + Date.now(), text: text.trim() });
+      saveData();
+      renderPanelProjects(getNode(currentNodeId));
+      showToast('메모가 추가되었습니다');
+    });
+    memosEl.appendChild(addMemoBtn);
   });
 }
 
@@ -907,21 +1211,6 @@ function renderConnected(node) {
 document.getElementById('panel-close').addEventListener('click', () => {
   document.getElementById('node-panel').classList.remove('open');
   currentNodeId = null;
-});
-
-document.getElementById('add-task-btn').addEventListener('click', () => {
-  const text = prompt('할 일을 입력하세요:');
-  if (!text || !text.trim()) return;
-  const node = getNode(currentNodeId);
-  if (!node) return;
-  const newTask = { id: 't' + Date.now(), text: text.trim(), done: false };
-  updateNode(currentNodeId, { tasks: [...node.tasks, newTask] });
-  const updated = getNode(currentNodeId);
-  renderPanelTasks(updated);
-  renderPanelProgress(updated);
-  renderCardView();
-  drawGraph();
-  showToast('할 일이 추가되었습니다');
 });
 
 /* ═══════════════════════════════════════════════
@@ -1153,6 +1442,8 @@ const KANBAN_COLS = {
 
 const DEFAULT_KANBAN_COLS = [{ id:'todo', name:'할 일', color:'#8E98CC' }, { id:'doing', name:'진행 중', color:'#A8C4FF' }, { id:'review', name:'검토', color:'#FFCA6E' }, { id:'done', name:'완료', color:'#7ED67E' }];
 function getKanbanCols(field) { return KANBAN_COLS[field] || DEFAULT_KANBAN_COLS; }
+
+let currentKanbanField = 'yt';
 let dragCard = null, dragFromCol = null;
 
 function renderKanbanSelector() {
