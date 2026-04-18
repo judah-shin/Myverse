@@ -581,7 +581,7 @@ let FIELDS = { ...DEFAULT_FIELDS };
 const DEFAULT_DATA = {
   nodes: [
     { id: 'me', label: '나', field: null, content: 'Myverse의 중심입니다.', tasks: [], connectedIds: ['work','yt','learn','health','money'], x: 0, y: 0, isRoot: true },
-    { id: 'work', label: '업무', field: 'work', content: '현재 진행중인 업무 프로젝트들입니다.', connectedIds:['me','w-church','w-report'], x:-220, y:-120,
+    { id: 'work',   label: '업무',  field: 'work',   content: '현재 진행중인 업무 프로젝트들입니다.', connectedIds:['me'], x: 0,    y:-260,
       tasks: [],
       projects: [
         {
@@ -637,13 +637,13 @@ const DEFAULT_DATA = {
         }
       ]
     },
-    { id: 'yt',     label: '유튜브', field: 'yt',     content: '유튜브 채널 관련 작업입니다.', tasks: [{id:'t3',text:'스크립트 완성',done:false},{id:'t4',text:'썸네일 제작',done:false}], connectedIds:['me','yt-script'], x:220, y:-120 },
-    { id: 'learn',  label: '학습',  field: 'learn',  content: '현재 수강 중인 강의와 학습 자료입니다.', tasks: [{id:'t5',text:'React 3강 수강',done:true},{id:'t6',text:'복습 노트 정리',done:false}], connectedIds:['me'], x:-260, y:100 },
-    { id: 'health', label: '건강',  field: 'health', content: '운동과 건강 관리 루틴입니다.', tasks: [{id:'t7',text:'아침 운동',done:true},{id:'t8',text:'수분 섭취',done:true},{id:'t9',text:'저녁 스트레칭',done:false}], connectedIds:['me'], x:260, y:100 },
-    { id: 'money',  label: '금융',  field: 'money',  content: '저축 목표와 지출 관리입니다.', tasks: [{id:'ta',text:'월 예산 점검',done:false}], connectedIds:['me'], x:0, y:200 },
-    { id: 'w-church', label: '교회행정', field: 'work', content: '교회 행정 업무 관련 노드입니다.', tasks: [], projects: [], connectedIds:['work'], x:-380, y:-180 },
-    { id: 'w-report', label: '2분기보고서', field: 'work', content: '2분기 성과 보고서 작성', tasks: [], projects: [], connectedIds:['work'], x:-360, y:-60 },
-    { id: 'yt-script', label: 'Myverse 소개', field: 'yt', content: '채널 첫 영상 스크립트', tasks: [{id:'tf',text:'아이디어 정리',done:true},{id:'tg',text:'스크립트 초안',done:false},{id:'th',text:'검토',done:false}], connectedIds:['yt'], x:380, y:-60 },
+    { id: 'yt',     label: '유튜브', field: 'yt',     content: '유튜브 채널 관련 작업입니다.', tasks: [{id:'t3',text:'스크립트 완성',done:false},{id:'t4',text:'썸네일 제작',done:false}], connectedIds:['me'], x: 247,  y:-80  },
+    { id: 'learn',  label: '학습',  field: 'learn',  content: '현재 수강 중인 강의와 학습 자료입니다.', tasks: [{id:'t5',text:'React 3강 수강',done:true},{id:'t6',text:'복습 노트 정리',done:false}], connectedIds:['me'], x: 152,  y: 212 },
+    { id: 'health', label: '건강',  field: 'health', content: '운동과 건강 관리 루틴입니다.', tasks: [{id:'t7',text:'아침 운동',done:true},{id:'t8',text:'수분 섭취',done:true},{id:'t9',text:'저녁 스트레칭',done:false}], connectedIds:['me'], x:-152,  y: 212 },
+    { id: 'money',  label: '금융',  field: 'money',  content: '저축 목표와 지출 관리입니다.', tasks: [{id:'ta',text:'월 예산 점검',done:false}], connectedIds:['me'], x:-247,  y:-80  },
+    { id: 'w-church',  label: '교회행정',   field: 'work', content: '교회 행정 업무 관련 노드입니다.', tasks: [], projects: [], connectedIds:['work'], x:-60, y:-420 },
+    { id: 'w-report',  label: '2분기보고서', field: 'work', content: '2분기 성과 보고서 작성',         tasks: [], projects: [], connectedIds:['work'], x: 60, y:-420 },
+    { id: 'yt-script', label: 'Myverse소개', field: 'yt',   content: '채널 첫 영상 스크립트', tasks: [{id:'tf',text:'아이디어 정리',done:true},{id:'tg',text:'스크립트 초안',done:false},{id:'th',text:'검토',done:false}], connectedIds:['yt'], x: 420, y:-60 },
   ],
   kanban: {
     yt: [
@@ -872,80 +872,111 @@ let expandedNodes = new Set();
 let virtualNodes  = [];   // { id, label, parentId, type, color, bg, x, y, ref }
 
 /* 가상 노드 전체 재계산 */
+/* ── 부채꼴 배치 헬퍼 ──
+   parentX/Y: 부모 위치, cx/cy: 기준 방향의 원점(조부모 위치, 없으면 루트)
+   count: 자식 수, dist: 반지름, spreadDeg: 총 부채꼴 각도(도)
+   반환: [{x,y}, ...]
+*/
+function fanPositions(parentX, parentY, cx, cy, count, dist, spreadDeg) {
+  // 부모→바깥 방향 (조부모에서 부모 방향의 연장선)
+  const baseAngle = Math.atan2(parentY - cy, parentX - cx); // 조부모→부모 방향
+  const spread = (spreadDeg * Math.PI) / 180;
+  const positions = [];
+  if (count === 1) {
+    positions.push({ x: parentX + Math.cos(baseAngle) * dist, y: parentY + Math.sin(baseAngle) * dist });
+  } else {
+    for (let i = 0; i < count; i++) {
+      const t = count === 1 ? 0 : (i / (count - 1) - 0.5); // -0.5 ~ 0.5
+      const angle = baseAngle + t * spread;
+      positions.push({ x: parentX + Math.cos(angle) * dist, y: parentY + Math.sin(angle) * dist });
+    }
+  }
+  return positions;
+}
+
 function rebuildVirtualNodes() {
   virtualNodes = [];
 
-  // 실제 state.nodes 중 expandedNodes에 있는 것을 순회
+  // 루트('나') 위치 — 방향 계산 기준점
+  const me = state.nodes.find(n => n.isRoot) || { x: 0, y: 0 };
+
   state.nodes.forEach(node => {
     if (!expandedNodes.has(node.id)) return;
     const f = node.field ? FIELDS[node.field] : null;
     const color = f ? f.color : '#7B9FE0';
     const bg    = f ? f.bg    : 'rgba(123,159,224,0.13)';
 
-    // 분야 노드(work 등) → 프로젝트 가상 노드
-    if (node.field && (node.projects || []).length > 0) {
-      const projects = node.projects;
-      projects.forEach((proj, i) => {
-        const angle = (Math.PI * 2 / projects.length) * i - Math.PI / 2;
-        const dist  = 160;
-        const vnId  = `vn_proj_${proj.id}`;
+    // 분야 노드 → 프로젝트 가상 노드 (부모방향 기준 ±50° 부채꼴)
+    const projects = node.projects || [];
+    if (!node.field || projects.length === 0) return;
+
+    const projPositions = fanPositions(
+      node.x, node.y,
+      me.x, me.y,          // 조부모 = 루트
+      projects.length,
+      200,                  // 분야→프로젝트 거리
+      Math.min(90, projects.length <= 1 ? 0 : 80)  // 최대 90°
+    );
+
+    projects.forEach((proj, i) => {
+      const vnId = `vn_proj_${proj.id}`;
+      const px = projPositions[i].x, py = projPositions[i].y;
+      virtualNodes.push({
+        id: vnId,
+        label: proj.title.length > 8 ? proj.title.slice(0, 8) + '…' : proj.title,
+        fullLabel: proj.title,
+        parentId: node.id, type: 'project',
+        color, bg, x: px, y: py,
+        ref: proj, refNodeId: node.id
+      });
+
+      // 프로젝트 → 할일 (부모방향 기준 ±45° 부채꼴)
+      if (!expandedNodes.has(vnId) || (proj.todos || []).length === 0) return;
+      const todoPositions = fanPositions(
+        px, py,
+        node.x, node.y,    // 조부모 = 분야 노드
+        proj.todos.length,
+        160,               // 프로젝트→할일 거리
+        Math.min(80, proj.todos.length <= 1 ? 0 : 70)
+      );
+
+      proj.todos.forEach((todo, j) => {
+        const vnTodoId = `vn_todo_${todo.id}`;
+        const tx = todoPositions[j].x, ty = todoPositions[j].y;
         virtualNodes.push({
-          id: vnId, label: proj.title.length > 7 ? proj.title.slice(0,7)+'…' : proj.title,
-          fullLabel: proj.title,
-          parentId: node.id, type: 'project',
-          color, bg,
-          x: node.x + Math.cos(angle) * dist,
-          y: node.y + Math.sin(angle) * dist,
-          ref: proj, refNodeId: node.id
+          id: vnTodoId,
+          label: todo.text.length > 8 ? todo.text.slice(0, 8) + '…' : todo.text,
+          fullLabel: todo.text,
+          parentId: vnId, type: 'todo',
+          color: todo.done ? '#68C268' : color, bg,
+          x: tx, y: ty,
+          ref: todo, refNodeId: node.id
         });
 
-        // 프로젝트 가상 노드도 펼쳐져 있으면 → 할일 가상 노드
-        if (expandedNodes.has(vnId) && (proj.todos || []).length > 0) {
-          proj.todos.forEach((todo, j) => {
-            const a2  = (Math.PI * 2 / proj.todos.length) * j - Math.PI / 2;
-            const d2  = 130;
-            const parentVn = virtualNodes.find(v => v.id === vnId);
-            const px = parentVn ? parentVn.x : node.x + Math.cos(angle) * dist;
-            const py = parentVn ? parentVn.y : node.y + Math.sin(angle) * dist;
-            const vnTodoId = `vn_todo_${todo.id}`;
-            const doneColor = todo.done ? '#68C268' : color;
-            virtualNodes.push({
-              id: vnTodoId, label: todo.text.length > 7 ? todo.text.slice(0,7)+'…' : todo.text,
-              fullLabel: todo.text,
-              parentId: vnId, type: 'todo',
-              color: doneColor, bg,
-              x: px + Math.cos(a2) * d2,
-              y: py + Math.sin(a2) * d2,
-              ref: todo, refNodeId: node.id
-            });
+        // 할일 → 세부계획 (부모방향 기준 ±40° 부채꼴)
+        if (!expandedNodes.has(vnTodoId) || (todo.plans || []).length === 0) return;
+        const planPositions = fanPositions(
+          tx, ty,
+          px, py,           // 조부모 = 프로젝트 노드
+          todo.plans.length,
+          130,              // 할일→세부계획 거리
+          Math.min(70, todo.plans.length <= 1 ? 0 : 60)
+        );
 
-            // 할일도 펼쳐져 있으면 → 세부계획 가상 노드
-            if (expandedNodes.has(vnTodoId) && (todo.plans || []).length > 0) {
-              const todoVn = virtualNodes.find(v => v.id === vnTodoId);
-              todo.plans.forEach((plan, k) => {
-                const a3 = (Math.PI * 2 / todo.plans.length) * k - Math.PI / 2;
-                const d3 = 110;
-                const vnPlanId = `vn_plan_${plan.id}`;
-                const planColor = plan.done ? '#68C268' : color;
-                virtualNodes.push({
-                  id: vnPlanId, label: plan.text.length > 7 ? plan.text.slice(0,7)+'…' : plan.text,
-                  fullLabel: plan.text,
-                  parentId: vnTodoId, type: 'plan',
-                  color: planColor, bg,
-                  x: (todoVn ? todoVn.x : px) + Math.cos(a3) * d3,
-                  y: (todoVn ? todoVn.y : py) + Math.sin(a3) * d3,
-                  ref: plan, refNodeId: node.id
-                });
-              });
-            }
+        todo.plans.forEach((plan, k) => {
+          const vnPlanId = `vn_plan_${plan.id}`;
+          virtualNodes.push({
+            id: vnPlanId,
+            label: plan.text.length > 8 ? plan.text.slice(0, 8) + '…' : plan.text,
+            fullLabel: plan.text,
+            parentId: vnTodoId, type: 'plan',
+            color: plan.done ? '#68C268' : color, bg,
+            x: planPositions[k].x, y: planPositions[k].y,
+            ref: plan, refNodeId: node.id
           });
-        }
+        });
       });
-    }
-
-    // 일반 하위 노드도 그 아래 프로젝트 확장 지원
-    // (w-church 등 field=work 인 서브노드)
-    if (!node.field && node.id !== 'me') return; // 이미 위에서 처리
+    });
   });
 }
 
@@ -962,45 +993,63 @@ function getNodePos(id) {
    확장된 가상 노드 클러스터의 점유 영역을 계산하고
    겹치는 실제 노드를 반대 방향으로 밀어냄 */
 function resolveCollisions() {
-  if (virtualNodes.length === 0) return;
-  const MIN_DIST = 80; // 노드 간 최소 거리(px, world space)
-  const PUSH_ITERS = 8;
+  const PUSH_ITERS = 20;
 
   for (let iter = 0; iter < PUSH_ITERS; iter++) {
     let moved = false;
+
     // 실제 노드 ↔ 가상 노드 충돌
     state.nodes.forEach(rn => {
-      if (rn.isRoot) return; // 루트('나')는 고정
+      if (rn.isRoot) return;
       virtualNodes.forEach(vn => {
         const dx = rn.x - vn.x, dy = rn.y - vn.y;
-        const dist = Math.hypot(dx, dy);
-        const minD = MIN_DIST + getNodeRadius(vn) + (Object.keys(FIELDS).includes(rn.id) ? 28 : 22);
-        if (dist < minD && dist > 0.01) {
-          const push = (minD - dist) * 0.55;
-          const nx = dx / dist * push, ny = dy / dist * push;
-          rn.x += nx; rn.y += ny;
+        const dist = Math.hypot(dx, dy) || 0.01;
+        const rnR = Object.keys(FIELDS).includes(rn.id) ? 28 : 22;
+        const vnR = getNodeRadius(vn);
+        const minD = rnR + vnR + 50;
+        if (dist < minD) {
+          const push = (minD - dist) * 0.6;
+          rn.x += dx / dist * push;
+          rn.y += dy / dist * push;
           moved = true;
         }
       });
     });
 
-    // 실제 노드 ↔ 실제 노드 충돌(비루트)
+    // 실제 노드 ↔ 실제 노드 충돌 (비루트)
     const realArr = state.nodes.filter(n => !n.isRoot);
     for (let i = 0; i < realArr.length; i++) {
       for (let j = i + 1; j < realArr.length; j++) {
         const a = realArr[i], b = realArr[j];
         const dx = a.x - b.x, dy = a.y - b.y;
-        const dist = Math.hypot(dx, dy);
-        const minD = 70;
-        if (dist < minD && dist > 0.01) {
-          const push = (minD - dist) * 0.4;
-          const nx = dx / dist * push, ny = dy / dist * push;
-          a.x += nx; a.y += ny;
-          b.x -= nx; b.y -= ny;
+        const dist = Math.hypot(dx, dy) || 0.01;
+        const minD = 100;
+        if (dist < minD) {
+          const push = (minD - dist) * 0.5;
+          a.x += dx / dist * push; a.y += dy / dist * push;
+          b.x -= dx / dist * push; b.y -= dy / dist * push;
           moved = true;
         }
       }
     }
+
+    // 가상 노드 ↔ 가상 노드 충돌
+    for (let i = 0; i < virtualNodes.length; i++) {
+      for (let j = i + 1; j < virtualNodes.length; j++) {
+        const a = virtualNodes[i], b = virtualNodes[j];
+        if (a.parentId === b.parentId) continue; // 같은 부모는 fanPositions가 이미 처리
+        const dx = a.x - b.x, dy = a.y - b.y;
+        const dist = Math.hypot(dx, dy) || 0.01;
+        const minD = getNodeRadius(a) + getNodeRadius(b) + 30;
+        if (dist < minD) {
+          const push = (minD - dist) * 0.4;
+          a.x += dx / dist * push; a.y += dy / dist * push;
+          b.x -= dx / dist * push; b.y -= dy / dist * push;
+          moved = true;
+        }
+      }
+    }
+
     if (!moved) break;
   }
 }
@@ -1042,13 +1091,14 @@ function drawGraph() {
   for (let y = offY; y < canvas.height; y += gridSize) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke(); }
   ctx.restore();
 
-  // ── 실제 노드 엣지 ──
+  // ── 실제 노드 엣지 ── (1단계만: 나↔분야)
   state.nodes.forEach(node => {
+    if (!node.isRoot && !Object.keys(FIELDS).includes(node.id)) return; // 2단계 이상 실제 노드 엣지 숨김
     node.connectedIds.forEach(cid => {
       const target = getNode(cid);
       if (!target) return;
-      // 양방향 중복 방지: id < cid 일 때만 그림
-      if (node.id >= cid && !(node.isRoot)) return;
+      if (!target.isRoot && !Object.keys(FIELDS).includes(target.id)) return;
+      if (node.id >= cid && !node.isRoot) return;
       if (node.isRoot && cid === 'me') return;
       const from = worldToScreen(node.x, node.y);
       const to   = worldToScreen(target.x, target.y);
@@ -1076,18 +1126,20 @@ function drawGraph() {
     ctx.restore();
   });
 
-  // ── 실제 노드 그리기 ──
+  // ── 실제 노드 그리기 (나 + 1단계 분야 노드만) ──
   const fieldIds = Object.keys(FIELDS);
   state.nodes.forEach(node => {
+    // 2단계 이상 실제 노드(w-church, yt-script 등)는 숨김
+    if (!node.isRoot && !fieldIds.includes(node.id)) return;
     drawNodeCircle(
       node.x, node.y,
-      node.isRoot ? 36 : fieldIds.includes(node.id) ? 28 : 22,
+      node.isRoot ? 36 : 28,
       node.id,
       node.isRoot ? '#2A3566' : (node.field ? FIELDS[node.field].bg : 'rgba(123,159,224,0.13)'),
       node.field ? FIELDS[node.field].color : '#7B9FE0',
       node.label,
       node.isRoot,
-      expandedNodes.has(node.id) && (node.projects||[]).length > 0,
+      expandedNodes.has(node.id) && (node.projects || []).length > 0,
       getNodeProgress(node)
     );
   });
@@ -1357,14 +1409,16 @@ function restoreNodePositions() {
 
 /* ── findNode: 실제 노드 + 가상 노드 모두 검색 ── */
 function findNode(wx, wy) {
+  const fIds = Object.keys(FIELDS);
   // 가상 노드 먼저 (위에 그려지므로)
   for (const vn of [...virtualNodes].reverse()) {
     const r = vn.type === 'project' ? 22 : vn.type === 'todo' ? 17 : 14;
     if (Math.hypot(wx - vn.x, wy - vn.y) < r) return vn;
   }
-  // 실제 노드
+  // 실제 노드 (나 + 1단계 분야 노드만)
   for (const node of [...state.nodes].reverse()) {
-    const r = node.isRoot ? 36 : 26;
+    if (!node.isRoot && !fIds.includes(node.id)) continue;
+    const r = node.isRoot ? 36 : 28;
     if (Math.hypot(wx - node.x, wy - node.y) < r) return { ...node, _real: true };
   }
   return null;
