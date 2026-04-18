@@ -292,6 +292,18 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .modal-delete { padding: 7px 14px; border-radius: var(--r); font-size: 13px; background: none; border: 1px solid rgba(220,60,60,0.3); color: #e05a5a; cursor: pointer; transition: all .15s; margin-right: auto; }
 .modal-delete:hover { background: rgba(220,60,60,0.1); }
 
+.due-preset {
+  padding: 5px 10px; border-radius: var(--r); font-size: 11px; font-weight: 500;
+  background: var(--bg3); border: 1px solid var(--border2); color: var(--text2); cursor: pointer; transition: all .12s;
+}
+.due-preset:hover { color: var(--text); border-color: var(--accent); }
+.item-action-btn {
+  background: none; border: none; cursor: pointer; font-size: 11px; padding: 2px 4px;
+  border-radius: 4px; color: var(--text3); transition: all .12s; flex-shrink: 0; opacity: 0.6;
+}
+.item-action-btn:hover { opacity: 1; background: var(--bg3); }
+.item-action-btn.del:hover { color: #E07070; }
+
 /* ─── Hierarchical Task Tree ─── */
 .project-block { margin-bottom: 14px; border: 1px solid var(--border2); border-radius: var(--r2); overflow: hidden; }
 .project-header { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--bg3); cursor: pointer; user-select: none; }
@@ -460,6 +472,27 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     </div>
     <div class="capture-hint-row">
       <span>Enter 저장</span><span>Esc 닫기</span>
+    </div>
+  </div>
+</div>
+
+<!-- 기간 설정 미니 모달 -->
+<div class="event-modal-overlay" id="due-date-overlay">
+  <div class="event-modal" style="width:320px">
+    <h3 id="due-date-title">기간 설정</h3>
+    <div class="event-form">
+      <input type="date" id="due-date-input">
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="due-preset" data-days="3">3일 후</button>
+        <button class="due-preset" data-days="7">1주 후</button>
+        <button class="due-preset" data-days="14">2주 후</button>
+        <button class="due-preset" data-days="30">1달 후</button>
+        <button class="due-preset" data-days="0" style="color:#E07070;border-color:#E07070">날짜 제거</button>
+      </div>
+      <div class="modal-actions">
+        <button class="modal-cancel" id="due-date-cancel">취소</button>
+        <button class="modal-save" id="due-date-save">저장</button>
+      </div>
     </div>
   </div>
 </div>
@@ -881,6 +914,53 @@ function getNodePos(id) {
   return null;
 }
 
+/* ── 충돌 방지: 가상 노드 배치 후 실제 노드들을 밀어내기 ──
+   확장된 가상 노드 클러스터의 점유 영역을 계산하고
+   겹치는 실제 노드를 반대 방향으로 밀어냄 */
+function resolveCollisions() {
+  if (virtualNodes.length === 0) return;
+  const MIN_DIST = 80; // 노드 간 최소 거리(px, world space)
+  const PUSH_ITERS = 8;
+
+  for (let iter = 0; iter < PUSH_ITERS; iter++) {
+    let moved = false;
+    // 실제 노드 ↔ 가상 노드 충돌
+    state.nodes.forEach(rn => {
+      if (rn.isRoot) return; // 루트('나')는 고정
+      virtualNodes.forEach(vn => {
+        const dx = rn.x - vn.x, dy = rn.y - vn.y;
+        const dist = Math.hypot(dx, dy);
+        const minD = MIN_DIST + getNodeRadius(vn) + (Object.keys(FIELDS).includes(rn.id) ? 28 : 22);
+        if (dist < minD && dist > 0.01) {
+          const push = (minD - dist) * 0.55;
+          const nx = dx / dist * push, ny = dy / dist * push;
+          rn.x += nx; rn.y += ny;
+          moved = true;
+        }
+      });
+    });
+
+    // 실제 노드 ↔ 실제 노드 충돌(비루트)
+    const realArr = state.nodes.filter(n => !n.isRoot);
+    for (let i = 0; i < realArr.length; i++) {
+      for (let j = i + 1; j < realArr.length; j++) {
+        const a = realArr[i], b = realArr[j];
+        const dx = a.x - b.x, dy = a.y - b.y;
+        const dist = Math.hypot(dx, dy);
+        const minD = 70;
+        if (dist < minD && dist > 0.01) {
+          const push = (minD - dist) * 0.4;
+          const nx = dx / dist * push, ny = dy / dist * push;
+          a.x += nx; a.y += ny;
+          b.x -= nx; b.y -= ny;
+          moved = true;
+        }
+      }
+    }
+    if (!moved) break;
+  }
+}
+
 function initGraph() {
   canvas = document.getElementById('graph-canvas');
   const container = document.getElementById('graph-view');
@@ -1199,19 +1279,36 @@ function handleExpand(hit) {
     return;
   }
   if (expandedNodes.has(hit.id)) {
-    // 접기: 해당 노드와 모든 자손 가상 노드 id를 expandedNodes에서 제거
     collapseNode(hit.id);
+    // 접을 때: 저장된 원본 위치로 복원
+    restoreNodePositions();
   } else {
+    // 펼치기 전 실제 노드 위치 스냅샷 저장
+    saveNodePositions();
     expandedNodes.add(hit.id);
   }
   rebuildVirtualNodes();
+  resolveCollisions();
   drawGraph();
 }
 
 function collapseNode(id) {
   expandedNodes.delete(id);
-  // 이 노드를 parentId로 갖는 가상 노드들도 재귀로 접기
   virtualNodes.filter(v => v.parentId === id).forEach(v => collapseNode(v.id));
+}
+
+/* 실제 노드 위치 스냅샷 */
+let _nodePosSave = {};
+function saveNodePositions() {
+  _nodePosSave = {};
+  state.nodes.forEach(n => { _nodePosSave[n.id] = { x: n.x, y: n.y }; });
+}
+function restoreNodePositions() {
+  // 아직 확장된 노드가 남아있으면 복원하지 않음
+  if (expandedNodes.size > 0) return;
+  state.nodes.forEach(n => {
+    if (_nodePosSave[n.id]) { n.x = _nodePosSave[n.id].x; n.y = _nodePosSave[n.id].y; }
+  });
 }
 
 /* ── findNode: 실제 노드 + 가상 노드 모두 검색 ── */
@@ -1284,6 +1381,83 @@ function renderPanelProgress(node) {
 /* ── 계층형 프로젝트 트리 렌더링 ──
    구조: 프로젝트 > 할 일 > 세부 계획 > 메모 (최대 4단계, 5번째는 메모 추가)
 */
+/* ── 모든 뷰 동기화 ── */
+function syncAll() {
+  saveData();
+  renderCardView();
+  rebuildVirtualNodes();
+  if (ctx) { resolveCollisions(); drawGraph(); }
+  renderKanban();
+  renderCalGrid();
+  if (currentNodeId) {
+    const n = getNode(currentNodeId);
+    if (n) { renderPanelProjects(n); renderPanelProgress(n); }
+  }
+}
+
+/* ── 기간 설정 헬퍼 ── */
+function isDueSoon(dateStr) {
+  if (!dateStr) return false;
+  const diff = (new Date(dateStr) - new Date()) / (1000 * 60 * 60 * 24);
+  return diff >= 0 && diff <= 3;
+}
+
+let _dueCb = null, _dueTarget = null;
+function openDueDatePicker(target, type, cb) {
+  _dueTarget = target; _dueCb = cb;
+  const titles = { project: '프로젝트 기간 설정', todo: '할 일 기간 설정', plan: '세부 계획 기간 설정' };
+  document.getElementById('due-date-title').textContent = titles[type] || '기간 설정';
+  document.getElementById('due-date-input').value = target.dueDate || '';
+  document.getElementById('due-date-overlay').classList.add('open');
+}
+
+document.getElementById('due-date-cancel').addEventListener('click', () => {
+  document.getElementById('due-date-overlay').classList.remove('open');
+});
+document.getElementById('due-date-overlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) e.currentTarget.classList.remove('open');
+});
+
+document.querySelectorAll('.due-preset').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const days = parseInt(btn.dataset.days);
+    if (days === 0) {
+      document.getElementById('due-date-input').value = '';
+    } else {
+      const d = new Date(); d.setDate(d.getDate() + days);
+      document.getElementById('due-date-input').value = d.toISOString().slice(0, 10);
+    }
+  });
+});
+
+document.getElementById('due-date-save').addEventListener('click', () => {
+  if (!_dueTarget) return;
+  const val = document.getElementById('due-date-input').value;
+  _dueTarget.dueDate = val || undefined;
+  document.getElementById('due-date-overlay').classList.remove('open');
+  if (_dueCb) _dueCb();
+  showToast(val ? `기간이 ${val}로 설정되었습니다` : '기간이 제거되었습니다');
+});
+
+/* ── 달력에도 프로젝트 기간 표시 ── */
+function getProjectEvents() {
+  const evs = [];
+  state.nodes.forEach(node => {
+    if (!node.field) return;
+    const f = FIELDS[node.field];
+    (node.projects || []).forEach(proj => {
+      if (proj.dueDate) evs.push({ id: 'proj_' + proj.id, title: proj.title, field: node.field, date: proj.dueDate, note: '프로젝트 마감', _readOnly: true });
+      (proj.todos || []).forEach(todo => {
+        if (todo.dueDate) evs.push({ id: 'todo_' + todo.id, title: todo.text, field: node.field, date: todo.dueDate, note: '할 일 마감', _readOnly: true });
+        (todo.plans || []).forEach(plan => {
+          if (plan.dueDate) evs.push({ id: 'plan_' + plan.id, title: plan.text, field: node.field, date: plan.dueDate, note: '세부 계획 마감', _readOnly: true });
+        });
+      });
+    });
+  });
+  return evs;
+}
+
 function renderPanelProjects(node) {
   const container = document.getElementById('panel-projects');
   if (!container) return;
@@ -1298,64 +1472,101 @@ function renderPanelProjects(node) {
   projects.forEach((proj, pi) => {
     const block = document.createElement('div');
     block.className = 'project-block';
-
     const statusColor = proj.status === 'done' ? '#68C268' : proj.status === 'doing' ? color : '#6470A0';
     const statusLabel = proj.status === 'done' ? '완료' : proj.status === 'doing' ? '진행중' : '예정';
+    const dueStr = proj.dueDate ? `<span style="font-size:10px;color:${isDueSoon(proj.dueDate)?'#E07070':'var(--text3)'};margin-left:6px">📅 ${proj.dueDate}</span>` : '';
 
     block.innerHTML = `
-      <div class="project-header">
+      <div class="project-header" style="cursor:pointer">
         <span class="project-toggle open">▶</span>
         <span class="project-name">${proj.title}</span>
-        <span class="project-status" style="background:${statusColor}22;color:${statusColor}">${statusLabel}</span>
+        ${dueStr}
+        <span class="project-status" style="background:${statusColor}22;color:${statusColor};margin-left:auto">${statusLabel}</span>
+        <button class="item-action-btn" data-action="due-proj" title="기간 설정">📅</button>
+        <button class="item-action-btn del" data-action="del-proj" title="삭제">✕</button>
       </div>
-      <div class="project-body open" id="proj-body-${proj.id}"></div>
+      <div class="project-body open"></div>
     `;
     container.appendChild(block);
 
     const header = block.querySelector('.project-header');
     const toggle = block.querySelector('.project-toggle');
-    const body = block.querySelector('.project-body');
-    header.addEventListener('click', () => {
+    const body   = block.querySelector('.project-body');
+
+    // 헤더 클릭 — 액션 버튼 제외
+    header.addEventListener('click', e => {
+      if (e.target.dataset.action) return;
       body.classList.toggle('open');
       toggle.classList.toggle('open');
     });
 
+    // 기간 설정
+    header.querySelector('[data-action="due-proj"]').addEventListener('click', e => {
+      e.stopPropagation();
+      openDueDatePicker(proj, 'project', () => syncAll());
+    });
+
+    // 프로젝트 삭제
+    header.querySelector('[data-action="del-proj"]').addEventListener('click', e => {
+      e.stopPropagation();
+      if (!confirm(`"${proj.title}" 프로젝트를 삭제할까요?`)) return;
+      node.projects = node.projects.filter(p => p.id !== proj.id);
+      syncAll();
+      showToast('프로젝트가 삭제되었습니다');
+    });
+
     // 할 일 목록
-    (proj.todos || []).forEach((todo, ti) => {
+    (proj.todos || []).forEach((todo) => {
       const todoEl = document.createElement('div');
       todoEl.className = 'todo-item';
       const hasPlans = todo.plans && todo.plans.length > 0;
+      const todoDue = todo.dueDate ? `<span style="font-size:10px;color:${isDueSoon(todo.dueDate)?'#E07070':'var(--text3)'};margin-left:4px">📅${todo.dueDate}</span>` : '';
       todoEl.innerHTML = `
         <div class="todo-row">
           <div class="checkbox${todo.done?' checked':''}" style="${todo.done?'background:'+color+';border-color:'+color:'border-color:'+color+'88'}"></div>
           <span class="todo-toggle${hasPlans?' open':''}">▶</span>
           <span class="todo-text${todo.done?' done':''}">${todo.text}</span>
+          ${todoDue}
+          <button class="item-action-btn" data-action="due-todo" title="기간 설정">📅</button>
+          <button class="item-action-btn del" data-action="del-todo" title="삭제">✕</button>
         </div>
         <div class="todo-plans${hasPlans?' open':''}"></div>
       `;
       body.appendChild(todoEl);
 
-      const todoRow = todoEl.querySelector('.todo-row');
+      const todoRow    = todoEl.querySelector('.todo-row');
       const todoToggle = todoEl.querySelector('.todo-toggle');
-      const plansEl = todoEl.querySelector('.todo-plans');
-      const cb = todoEl.querySelector('.checkbox');
+      const plansEl    = todoEl.querySelector('.todo-plans');
+      const cb         = todoEl.querySelector('.checkbox');
 
       cb.addEventListener('click', e => {
         e.stopPropagation();
         todo.done = !todo.done;
-        saveData();
-        renderPanelProjects(getNode(currentNodeId));
-        renderPanelProgress(getNode(currentNodeId));
-        renderCardView(); rebuildVirtualNodes(); drawGraph();
+        // 칸반 상태 자동 연동
+        if (todo.done && proj.todos.every(t => t.done)) proj.status = 'done';
+        else if (todo.done) proj.status = 'doing';
+        syncAll();
       });
 
       todoRow.addEventListener('click', e => {
-        if (e.target === cb) return;
+        if (e.target === cb || e.target.dataset.action) return;
         plansEl.classList.toggle('open');
         todoToggle.classList.toggle('open');
       });
 
-      // 세부 계획 목록
+      todoRow.querySelector('[data-action="due-todo"]').addEventListener('click', e => {
+        e.stopPropagation();
+        openDueDatePicker(todo, 'todo', () => syncAll());
+      });
+
+      todoRow.querySelector('[data-action="del-todo"]').addEventListener('click', e => {
+        e.stopPropagation();
+        if (!confirm(`"${todo.text}" 할 일을 삭제할까요?`)) return;
+        proj.todos = proj.todos.filter(t => t.id !== todo.id);
+        syncAll();
+        showToast('할 일이 삭제되었습니다');
+      });
+
       renderPlans(plansEl, todo, color, proj, node);
 
       // 세부 계획 추가 버튼
@@ -1367,9 +1578,7 @@ function renderPanelProjects(node) {
         if (!text || !text.trim()) return;
         if (!todo.plans) todo.plans = [];
         todo.plans.push({ id: 'pl' + Date.now(), text: text.trim(), done: false, memos: [] });
-        saveData();
-        renderPanelProjects(getNode(currentNodeId));
-        renderPanelProgress(getNode(currentNodeId));
+        syncAll();
         showToast('세부 계획이 추가되었습니다');
       });
       plansEl.appendChild(addPlanBtn);
@@ -1378,41 +1587,37 @@ function renderPanelProjects(node) {
     // 할 일 추가 버튼
     const addTodoBtn = document.createElement('button');
     addTodoBtn.className = 'add-child-btn';
-    addTodoBtn.style.margin = '4px 8px 8px';
-    addTodoBtn.style.width = 'calc(100% - 16px)';
+    addTodoBtn.style.cssText = 'margin:4px 8px 8px;width:calc(100% - 16px)';
     addTodoBtn.innerHTML = '＋ 할 일 추가';
     addTodoBtn.addEventListener('click', () => {
       const text = prompt('할 일을 입력하세요:');
       if (!text || !text.trim()) return;
       if (!proj.todos) proj.todos = [];
       proj.todos.push({ id: 'td' + Date.now(), text: text.trim(), done: false, plans: [] });
-      saveData();
-      renderPanelProjects(getNode(currentNodeId));
-      renderPanelProgress(getNode(currentNodeId));
+      if (proj.status === 'todo') proj.status = 'doing';
+      syncAll();
       showToast('할 일이 추가되었습니다');
     });
     body.appendChild(addTodoBtn);
   });
 
-  // 프로젝트 추가 버튼 이벤트
+  // 프로젝트 추가 버튼
   const addProjBtn = document.getElementById('add-project-btn');
   if (addProjBtn) {
     addProjBtn.onclick = () => {
       const name = prompt('프로젝트 이름을 입력하세요:');
       if (!name || !name.trim()) return;
-      const node2 = getNode(currentNodeId);
-      if (!node2) return;
-      if (!node2.projects) node2.projects = [];
-      node2.projects.push({ id: 'wp' + Date.now(), title: name.trim(), status: 'todo', todos: [] });
-      saveData();
-      renderPanelProjects(getNode(currentNodeId));
+      const n2 = getNode(currentNodeId);
+      if (!n2) return;
+      if (!n2.projects) n2.projects = [];
+      n2.projects.push({ id: 'wp' + Date.now(), title: name.trim(), status: 'todo', todos: [] });
+      syncAll();
       showToast('프로젝트가 추가되었습니다');
     };
   }
 }
 
 function renderPlans(plansEl, todo, color, proj, node) {
-  // 기존 plan 항목들 제거 후 재생성 (add 버튼 제외)
   plansEl.querySelectorAll('.plan-item').forEach(el => el.remove());
   const insertBefore = plansEl.querySelector('.add-child-btn');
 
@@ -1420,42 +1625,66 @@ function renderPlans(plansEl, todo, color, proj, node) {
     const planEl = document.createElement('div');
     planEl.className = 'plan-item';
     const hasMemos = plan.memos && plan.memos.length > 0;
+    const planDue = plan.dueDate ? `<span style="font-size:9px;color:${isDueSoon(plan.dueDate)?'#E07070':'var(--text3)'};margin-left:4px">📅${plan.dueDate}</span>` : '';
     planEl.innerHTML = `
       <div class="plan-row">
-        <div class="checkbox${plan.done?' checked':''}" style="width:14px;height:14px;border-radius:3px;border:1.5px solid ${plan.done?color:color+'88'};display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;${plan.done?'background:'+color:''};font-size:9px;color:white">${plan.done?'✓':''}</div>
+        <div class="plan-cb checkbox${plan.done?' checked':''}" style="width:14px;height:14px;border-radius:3px;border:1.5px solid ${plan.done?color:color+'88'};display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;${plan.done?'background:'+color:''};font-size:9px;color:white">${plan.done?'✓':''}</div>
         <span class="plan-toggle${hasMemos?' open':''}">▶</span>
         <span class="plan-text${plan.done?' done':''}">${plan.text}</span>
+        ${planDue}
+        <button class="item-action-btn" data-action="due-plan" title="기간 설정">📅</button>
+        <button class="item-action-btn del" data-action="del-plan" title="삭제">✕</button>
       </div>
       <div class="plan-memos${hasMemos?' open':''}"></div>
     `;
     if (insertBefore) plansEl.insertBefore(planEl, insertBefore);
     else plansEl.appendChild(planEl);
 
-    const planRow = planEl.querySelector('.plan-row');
+    const planRow    = planEl.querySelector('.plan-row');
     const planToggle = planEl.querySelector('.plan-toggle');
-    const memosEl = planEl.querySelector('.plan-memos');
-    const planCb = planEl.querySelector('.checkbox');
+    const memosEl   = planEl.querySelector('.plan-memos');
+    const planCb    = planEl.querySelector('.plan-cb');
 
     planCb.addEventListener('click', e => {
       e.stopPropagation();
       plan.done = !plan.done;
-      saveData();
-      renderPanelProjects(getNode(currentNodeId));
-      renderPanelProgress(getNode(currentNodeId));
-      renderCardView(); rebuildVirtualNodes(); drawGraph();
+      syncAll();
     });
 
     planRow.addEventListener('click', e => {
-      if (e.target === planCb) return;
+      if (e.target === planCb || e.target.dataset.action) return;
       memosEl.classList.toggle('open');
       planToggle.classList.toggle('open');
+    });
+
+    planRow.querySelector('[data-action="due-plan"]').addEventListener('click', e => {
+      e.stopPropagation();
+      openDueDatePicker(plan, 'plan', () => syncAll());
+    });
+
+    planRow.querySelector('[data-action="del-plan"]').addEventListener('click', e => {
+      e.stopPropagation();
+      if (!confirm(`"${plan.text}" 세부 계획을 삭제할까요?`)) return;
+      todo.plans = todo.plans.filter(p => p.id !== plan.id);
+      syncAll();
+      showToast('세부 계획이 삭제되었습니다');
     });
 
     // 메모 렌더링
     (plan.memos || []).forEach(memo => {
       const memoEl = document.createElement('div');
       memoEl.className = 'memo-item';
-      memoEl.innerHTML = `<span class="memo-icon">📝</span><span class="memo-text">${memo.text}</span>`;
+      memoEl.innerHTML = `
+        <span class="memo-icon">📝</span>
+        <span class="memo-text">${memo.text}</span>
+        <button class="item-action-btn del" style="margin-left:auto;flex-shrink:0" title="메모 삭제">✕</button>
+      `;
+      memoEl.querySelector('.item-action-btn').addEventListener('click', () => {
+        if (!confirm('메모를 삭제할까요?')) return;
+        plan.memos = plan.memos.filter(m => m.id !== memo.id);
+        syncAll();
+        showToast('메모가 삭제되었습니다');
+      });
       memosEl.appendChild(memoEl);
     });
 
@@ -1468,8 +1697,7 @@ function renderPlans(plansEl, todo, color, proj, node) {
       if (!text || !text.trim()) return;
       if (!plan.memos) plan.memos = [];
       plan.memos.push({ id: 'mo' + Date.now(), text: text.trim() });
-      saveData();
-      renderPanelProjects(getNode(currentNodeId));
+      syncAll();
       showToast('메모가 추가되었습니다');
     });
     memosEl.appendChild(addMemoBtn);
@@ -1817,10 +2045,7 @@ function renderKanban() {
       const proj = (node.projects || []).find(p => p.id === dragCard.projId);
       if (!proj) return;
       proj.status = colToStatus(col.id);
-      saveData();
-      renderKanban();
-      // 업무 패널이 열려있으면 동기화
-      if (currentNodeId) renderPanelProjects(getNode(currentNodeId));
+      syncAll();
       showToast(`"${proj.title}"을 "${col.name}"으로 이동했습니다`);
     });
 
@@ -1840,9 +2065,11 @@ function buildKanbanCard(proj, col) {
   const doneTodos = todos.filter(t => t.done).length;
   const pct = totalTodos > 0 ? Math.round(doneTodos / totalTodos * 100) : null;
 
+  const dueLabel = proj.dueDate ? `<div style="font-size:10px;color:${isDueSoon(proj.dueDate)?'#E07070':'var(--text3)'};margin-top:4px">📅 ${proj.dueDate}</div>` : '';
   el.innerHTML = `
     <div class="kc-title">${proj.title}</div>
     ${proj._nodeLabel ? `<div class="kc-tags"><span class="kc-tag" style="background:${f.color}22;color:${f.color}">${proj._nodeLabel}</span></div>` : ''}
+    ${dueLabel}
     ${pct !== null ? `
       <div class="kc-prog">
         <div class="kc-prog-label">${doneTodos}/${totalTodos} 할 일 완료</div>
@@ -1956,8 +2183,9 @@ function renderCalGrid() {
     cell.className = `cal-day${isOther?' other-month':''}${isToday?' today':''}`;
     cell.innerHTML = `<div class="day-num">${day}</div>`;
 
-    // Events
-    const dayEvents = (state.events || []).filter(ev => ev.date === dateStr && activeFilters.has(ev.field));
+    // Events — 달력 일정 + 프로젝트/할일 기간 통합
+    const allEvs = [...(state.events || []), ...getProjectEvents()];
+    const dayEvents = allEvs.filter(ev => ev.date === dateStr && activeFilters.has(ev.field));
     const shown = dayEvents.slice(0, 3);
     shown.forEach(ev => {
       const f = FIELDS[ev.field];
