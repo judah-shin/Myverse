@@ -381,6 +381,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
         <button class="graph-btn" id="zoom-out">－ 축소</button>
         <button class="graph-btn" id="zoom-reset">↺ 초기화</button>
         <button class="graph-btn" id="add-node-btn">＋ 노드 추가</button>
+        <span style="font-size:11px;color:var(--text3);padding:0 4px">더블클릭으로 확장</span>
       </div>
       <!-- 노드 상세 패널 -->
       <div class="node-panel" id="node-panel">
@@ -786,6 +787,100 @@ let isDragging = false, lastMouse = null;
 let hoveredNode = null;
 let graphReady = false;
 
+/* ── 가상 노드 시스템 ──
+   expandedNodes: 더블클릭으로 펼쳐진 노드 id Set
+   virtualNodes:  projects/todos/plans에서 동적으로 생성된 노드 배열
+*/
+let expandedNodes = new Set();
+let virtualNodes  = [];   // { id, label, parentId, type, color, bg, x, y, ref }
+
+/* 가상 노드 전체 재계산 */
+function rebuildVirtualNodes() {
+  virtualNodes = [];
+
+  // 실제 state.nodes 중 expandedNodes에 있는 것을 순회
+  state.nodes.forEach(node => {
+    if (!expandedNodes.has(node.id)) return;
+    const f = node.field ? FIELDS[node.field] : null;
+    const color = f ? f.color : '#7B9FE0';
+    const bg    = f ? f.bg    : 'rgba(123,159,224,0.13)';
+
+    // 분야 노드(work 등) → 프로젝트 가상 노드
+    if (node.field && (node.projects || []).length > 0) {
+      const projects = node.projects;
+      projects.forEach((proj, i) => {
+        const angle = (Math.PI * 2 / projects.length) * i - Math.PI / 2;
+        const dist  = 160;
+        const vnId  = `vn_proj_${proj.id}`;
+        virtualNodes.push({
+          id: vnId, label: proj.title.length > 7 ? proj.title.slice(0,7)+'…' : proj.title,
+          fullLabel: proj.title,
+          parentId: node.id, type: 'project',
+          color, bg,
+          x: node.x + Math.cos(angle) * dist,
+          y: node.y + Math.sin(angle) * dist,
+          ref: proj, refNodeId: node.id
+        });
+
+        // 프로젝트 가상 노드도 펼쳐져 있으면 → 할일 가상 노드
+        if (expandedNodes.has(vnId) && (proj.todos || []).length > 0) {
+          proj.todos.forEach((todo, j) => {
+            const a2  = (Math.PI * 2 / proj.todos.length) * j - Math.PI / 2;
+            const d2  = 130;
+            const parentVn = virtualNodes.find(v => v.id === vnId);
+            const px = parentVn ? parentVn.x : node.x + Math.cos(angle) * dist;
+            const py = parentVn ? parentVn.y : node.y + Math.sin(angle) * dist;
+            const vnTodoId = `vn_todo_${todo.id}`;
+            const doneColor = todo.done ? '#68C268' : color;
+            virtualNodes.push({
+              id: vnTodoId, label: todo.text.length > 7 ? todo.text.slice(0,7)+'…' : todo.text,
+              fullLabel: todo.text,
+              parentId: vnId, type: 'todo',
+              color: doneColor, bg,
+              x: px + Math.cos(a2) * d2,
+              y: py + Math.sin(a2) * d2,
+              ref: todo, refNodeId: node.id
+            });
+
+            // 할일도 펼쳐져 있으면 → 세부계획 가상 노드
+            if (expandedNodes.has(vnTodoId) && (todo.plans || []).length > 0) {
+              const todoVn = virtualNodes.find(v => v.id === vnTodoId);
+              todo.plans.forEach((plan, k) => {
+                const a3 = (Math.PI * 2 / todo.plans.length) * k - Math.PI / 2;
+                const d3 = 110;
+                const vnPlanId = `vn_plan_${plan.id}`;
+                const planColor = plan.done ? '#68C268' : color;
+                virtualNodes.push({
+                  id: vnPlanId, label: plan.text.length > 7 ? plan.text.slice(0,7)+'…' : plan.text,
+                  fullLabel: plan.text,
+                  parentId: vnTodoId, type: 'plan',
+                  color: planColor, bg,
+                  x: (todoVn ? todoVn.x : px) + Math.cos(a3) * d3,
+                  y: (todoVn ? todoVn.y : py) + Math.sin(a3) * d3,
+                  ref: plan, refNodeId: node.id
+                });
+              });
+            }
+          });
+        }
+      });
+    }
+
+    // 일반 하위 노드도 그 아래 프로젝트 확장 지원
+    // (w-church 등 field=work 인 서브노드)
+    if (!node.field && node.id !== 'me') return; // 이미 위에서 처리
+  });
+}
+
+/* 가상 노드 id 또는 실제 노드 id로 위치 반환 */
+function getNodePos(id) {
+  const vn = virtualNodes.find(v => v.id === id);
+  if (vn) return { x: vn.x, y: vn.y };
+  const rn = getNode(id);
+  if (rn) return { x: rn.x, y: rn.y };
+  return null;
+}
+
 function initGraph() {
   canvas = document.getElementById('graph-canvas');
   const container = document.getElementById('graph-view');
@@ -798,6 +893,7 @@ function initGraph() {
     bindGraphEvents();
     graphReady = true;
   }
+  rebuildVirtualNodes();
   drawGraph();
 }
 
@@ -812,95 +908,208 @@ function drawGraph() {
   if (!ctx) return;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Grid
+  // ── 그리드 ──
   ctx.save();
   ctx.strokeStyle = 'rgba(255,255,255,0.03)';
   ctx.lineWidth = 1;
   const gridSize = 40 * camScale;
-  const offX = camX % gridSize;
-  const offY = camY % gridSize;
+  const offX = camX % gridSize, offY = camY % gridSize;
   for (let x = offX; x < canvas.width; x += gridSize) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke(); }
   for (let y = offY; y < canvas.height; y += gridSize) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke(); }
   ctx.restore();
 
-  // Edges
+  // ── 실제 노드 엣지 ──
   state.nodes.forEach(node => {
     node.connectedIds.forEach(cid => {
-      if (cid === 'me' && !node.isRoot) {
-        const target = getNode(cid);
-        if (!target) return;
-        const from = worldToScreen(node.x, node.y);
-        const to = worldToScreen(target.x, target.y);
-        const color = node.field ? FIELDS[node.field].color : '#7F77DD';
-        ctx.save();
-        ctx.strokeStyle = color;
-        ctx.globalAlpha = 0.2;
-        ctx.lineWidth = 1.5 * camScale;
-        ctx.beginPath();
-        ctx.moveTo(from.x, from.y);
-        ctx.lineTo(to.x, to.y);
-        ctx.stroke();
-        ctx.restore();
-      }
+      const target = getNode(cid);
+      if (!target) return;
+      // 양방향 중복 방지: id < cid 일 때만 그림
+      if (node.id >= cid && !(node.isRoot)) return;
+      if (node.isRoot && cid === 'me') return;
+      const from = worldToScreen(node.x, node.y);
+      const to   = worldToScreen(target.x, target.y);
+      const color = node.field ? FIELDS[node.field].color : (target.field ? FIELDS[target.field].color : '#7B9FE0');
+      ctx.save();
+      ctx.strokeStyle = color; ctx.globalAlpha = 0.22;
+      ctx.lineWidth = 1.5 * camScale;
+      ctx.beginPath(); ctx.moveTo(from.x, from.y); ctx.lineTo(to.x, to.y); ctx.stroke();
+      ctx.restore();
     });
   });
 
-  // Nodes
-  state.nodes.forEach(node => {
-    const s = worldToScreen(node.x, node.y);
-    const isHovered = hoveredNode === node.id;
-    const isRoot = node.isRoot;
-    const r = (isRoot ? 36 : node.field && getNode(node.id) && !['work','yt','learn','health','money'].includes(node.id) ? 22 : 28) * camScale;
-    const color = node.field ? FIELDS[node.field].color : '#7F77DD';
-    const bg = node.field ? FIELDS[node.field].bg : 'rgba(127,119,221,0.15)';
-
+  // ── 가상 노드 엣지 ──
+  virtualNodes.forEach(vn => {
+    const fromPos = getNodePos(vn.parentId);
+    if (!fromPos) return;
+    const from = worldToScreen(fromPos.x, fromPos.y);
+    const to   = worldToScreen(vn.x, vn.y);
     ctx.save();
-    if (isHovered) {
-      ctx.shadowColor = color;
-      ctx.shadowBlur = 16;
-    }
-    // circle fill
-    ctx.beginPath();
-    ctx.arc(s.x, s.y, r, 0, Math.PI * 2);
-    ctx.fillStyle = isRoot ? '#2A3566' : bg;
-    ctx.fill();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = (isHovered ? 2 : 1.5) * camScale;
-    ctx.stroke();
-    ctx.restore();
-
-    // label
-    ctx.save();
-    ctx.fillStyle = isRoot ? '#F0F2FF' : '#F0F2FF';
-    ctx.font = `${(isRoot ? 13 : 12) * camScale}px 'Pretendard', sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(node.label, s.x, s.y);
-
-    if (node.field) {
-      const prog = node.tasks.length > 0 ? Math.round(node.tasks.filter(t=>t.done).length/node.tasks.length*100) : null;
-      if (prog !== null) {
-        ctx.font = `${9 * camScale}px 'Pretendard', sans-serif`;
-        ctx.fillStyle = color;
-        ctx.fillText(`${prog}%`, s.x, s.y + 13 * camScale);
-      }
-    }
+    ctx.strokeStyle = vn.color; ctx.globalAlpha = 0.28;
+    ctx.lineWidth = (vn.type === 'project' ? 1.5 : vn.type === 'todo' ? 1.2 : 1) * camScale;
+    ctx.setLineDash(vn.type === 'plan' ? [4*camScale, 3*camScale] : []);
+    ctx.beginPath(); ctx.moveTo(from.x, from.y); ctx.lineTo(to.x, to.y); ctx.stroke();
+    ctx.setLineDash([]);
     ctx.restore();
   });
+
+  // ── 실제 노드 그리기 ──
+  const fieldIds = Object.keys(FIELDS);
+  state.nodes.forEach(node => {
+    drawNodeCircle(
+      node.x, node.y,
+      node.isRoot ? 36 : fieldIds.includes(node.id) ? 28 : 22,
+      node.id,
+      node.isRoot ? '#2A3566' : (node.field ? FIELDS[node.field].bg : 'rgba(123,159,224,0.13)'),
+      node.field ? FIELDS[node.field].color : '#7B9FE0',
+      node.label,
+      node.isRoot,
+      expandedNodes.has(node.id) && (node.projects||[]).length > 0,
+      getNodeProgress(node)
+    );
+  });
+
+  // ── 가상 노드 그리기 ──
+  virtualNodes.forEach(vn => {
+    const r = vn.type === 'project' ? 22 : vn.type === 'todo' ? 17 : 14;
+    drawNodeCircle(
+      vn.x, vn.y, r, vn.id,
+      vn.bg, vn.color,
+      vn.label,
+      false,
+      expandedNodes.has(vn.id),
+      null
+    );
+  });
+
+  // ── 확장 힌트 툴팁 (호버) ──
+  if (hoveredNode) {
+    const allNodes = getAllGraphNodes();
+    const hn = allNodes.find(n => n.id === hoveredNode);
+    if (hn && canExpand(hn)) {
+      const s = worldToScreen(hn.x, hn.y);
+      const r = getNodeRadius(hn) * camScale;
+      ctx.save();
+      ctx.fillStyle = 'rgba(255,255,255,0.12)';
+      ctx.font = `${10 * camScale}px 'Pretendard', sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText('더블클릭으로 펼치기', s.x, s.y + r + 14 * camScale);
+      ctx.restore();
+    }
+  }
+}
+
+function getNodeRadius(n) {
+  if (n.isRoot) return 36;
+  if (n.type === 'project') return 22;
+  if (n.type === 'todo')    return 17;
+  if (n.type === 'plan')    return 14;
+  const fieldIds = Object.keys(FIELDS);
+  return fieldIds.includes(n.id) ? 28 : 22;
+}
+
+function getNodeProgress(node) {
+  let total = 0, done = 0;
+  (node.projects || []).forEach(p => {
+    (p.todos || []).forEach(t => { total++; if (t.done) done++; });
+  });
+  (node.tasks || []).forEach(t => { total++; if (t.done) done++; });
+  return total > 0 ? Math.round(done / total * 100) : null;
+}
+
+function canExpand(n) {
+  if (n.type === 'project') return (n.ref.todos || []).length > 0;
+  if (n.type === 'todo')    return (n.ref.plans || []).length > 0;
+  if (n.type === 'plan')    return false;
+  // 실제 노드
+  if (n.isRoot) return false;
+  return (n.projects || []).length > 0;
+}
+
+function getAllGraphNodes() {
+  return [
+    ...state.nodes.map(n => ({ ...n, _real: true })),
+    ...virtualNodes
+  ];
+}
+
+function drawNodeCircle(wx, wy, r, id, fillColor, strokeColor, label, isRoot, isExpanded, pct) {
+  const s = worldToScreen(wx, wy);
+  const sr = r * camScale;
+  const isHov = hoveredNode === id;
+
+  ctx.save();
+  if (isHov) { ctx.shadowColor = strokeColor; ctx.shadowBlur = 16; }
+
+  ctx.beginPath();
+  ctx.arc(s.x, s.y, sr, 0, Math.PI * 2);
+  ctx.fillStyle = fillColor;
+  ctx.fill();
+  ctx.strokeStyle = strokeColor;
+  ctx.lineWidth = (isHov ? 2.5 : 1.5) * camScale;
+  ctx.stroke();
+
+  // 펼쳐진 노드 표시 — 외곽에 점선 링
+  if (isExpanded) {
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, sr + 5 * camScale, 0, Math.PI * 2);
+    ctx.strokeStyle = strokeColor;
+    ctx.globalAlpha = 0.35;
+    ctx.lineWidth = 1 * camScale;
+    ctx.setLineDash([3 * camScale, 3 * camScale]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+
+  // 라벨
+  ctx.save();
+  ctx.fillStyle = '#E8ECF8';
+  ctx.font = `${Math.max(9, (isRoot ? 13 : r >= 22 ? 12 : r >= 17 ? 10 : 9)) * camScale}px 'Pretendard', sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(label, s.x, s.y + (pct !== null ? -5 * camScale : 0));
+
+  if (pct !== null) {
+    ctx.font = `${9 * camScale}px 'Pretendard', sans-serif`;
+    ctx.fillStyle = pct === 100 ? '#68C268' : strokeColor;
+    ctx.fillText(`${pct}%`, s.x, s.y + 7 * camScale);
+  }
+  ctx.restore();
 }
 
 function bindGraphEvents() {
+  // ── 더블클릭 감지용 ──
+  let lastClickTime = 0, lastClickId = null;
+
   canvas.addEventListener('mousedown', e => { isDragging = true; lastMouse = { x: e.clientX, y: e.clientY }; });
+
   canvas.addEventListener('mouseup', e => {
     if (!isDragging) return;
     const dx = e.clientX - lastMouse.x, dy = e.clientY - lastMouse.y;
-    if (Math.abs(dx) < 4 && Math.abs(dy) < 4) {
-      const w = screenToWorld(e.clientX - canvas.getBoundingClientRect().left, e.clientY - canvas.getBoundingClientRect().top);
-      const hit = findNode(w.x, w.y);
-      if (hit) openNodePanel(hit.id);
-    }
     isDragging = false;
+    if (Math.abs(dx) >= 5 || Math.abs(dy) >= 5) return; // 드래그면 무시
+
+    const rect = canvas.getBoundingClientRect();
+    const w = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
+    const hit = findNode(w.x, w.y);
+    if (!hit) return;
+
+    const now = Date.now();
+    const isDouble = (now - lastClickTime < 350) && lastClickId === hit.id;
+    lastClickTime = now;
+    lastClickId = hit.id;
+
+    if (isDouble) {
+      // ── 더블클릭: 펼치기/접기 ──
+      handleExpand(hit);
+    } else {
+      // ── 단일클릭: 패널 열기 ──
+      const realId = hit._real ? hit.id : (hit.refNodeId || hit.id);
+      openNodePanel(realId);
+    }
   });
+
   canvas.addEventListener('mousemove', e => {
     const rect = canvas.getBoundingClientRect();
     if (isDragging) {
@@ -914,6 +1123,7 @@ function bindGraphEvents() {
     canvas.style.cursor = hit ? 'pointer' : (isDragging ? 'grabbing' : 'grab');
     drawGraph();
   });
+
   canvas.addEventListener('wheel', e => {
     e.preventDefault();
     const rect = canvas.getBoundingClientRect();
@@ -926,22 +1136,95 @@ function bindGraphEvents() {
     drawGraph();
   }, { passive: false });
 
-  // Touch support
+  // ── 터치 지원 (더블탭도 처리) ──
   let lastTouch = null, lastDist = null;
-  canvas.addEventListener('touchstart', e => { e.preventDefault(); if (e.touches.length===1) lastTouch={x:e.touches[0].clientX,y:e.touches[0].clientY}; if (e.touches.length===2) lastDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY); });
-  canvas.addEventListener('touchmove', e => { e.preventDefault(); if (e.touches.length===1&&lastTouch){camX+=e.touches[0].clientX-lastTouch.x;camY+=e.touches[0].clientY-lastTouch.y;lastTouch={x:e.touches[0].clientX,y:e.touches[0].clientY};drawGraph();}if(e.touches.length===2&&lastDist){const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);const scale=Math.max(0.3,Math.min(3,camScale*(d/lastDist)));camScale=scale;lastDist=d;drawGraph();}},{passive:false});
-  canvas.addEventListener('touchend', e => { e.preventDefault(); if (e.changedTouches.length===1&&lastTouch){ const rect=canvas.getBoundingClientRect(); const t=e.changedTouches[0]; const w=screenToWorld(t.clientX-rect.left,t.clientY-rect.top); const hit=findNode(w.x,w.y); if(hit)openNodePanel(hit.id); } lastTouch=null; lastDist=null; });
+  let lastTapTime = 0, lastTapId = null;
 
-  document.getElementById('zoom-in').addEventListener('click', () => { camScale=Math.min(3,camScale*1.2); drawGraph(); });
-  document.getElementById('zoom-out').addEventListener('click', () => { camScale=Math.max(0.3,camScale*0.8); drawGraph(); });
-  document.getElementById('zoom-reset').addEventListener('click', () => { camX=canvas.width/2; camY=canvas.height/2; camScale=1; drawGraph(); });
+  canvas.addEventListener('touchstart', e => {
+    e.preventDefault();
+    if (e.touches.length === 1) lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    if (e.touches.length === 2) lastDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+  });
+
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (e.touches.length === 1 && lastTouch) {
+      camX += e.touches[0].clientX - lastTouch.x;
+      camY += e.touches[0].clientY - lastTouch.y;
+      lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      drawGraph();
+    }
+    if (e.touches.length === 2 && lastDist) {
+      const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      camScale = Math.max(0.3, Math.min(3, camScale * (d / lastDist)));
+      lastDist = d; drawGraph();
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', e => {
+    e.preventDefault();
+    if (e.changedTouches.length === 1 && lastTouch) {
+      const rect = canvas.getBoundingClientRect();
+      const t = e.changedTouches[0];
+      const dx = Math.abs(t.clientX - lastTouch.x), dy = Math.abs(t.clientY - lastTouch.y);
+      if (dx < 8 && dy < 8) {
+        const w = screenToWorld(t.clientX - rect.left, t.clientY - rect.top);
+        const hit = findNode(w.x, w.y);
+        if (hit) {
+          const now = Date.now();
+          const isDouble = (now - lastTapTime < 400) && lastTapId === hit.id;
+          lastTapTime = now; lastTapId = hit.id;
+          if (isDouble) handleExpand(hit);
+          else openNodePanel(hit._real ? hit.id : (hit.refNodeId || hit.id));
+        }
+      }
+    }
+    lastTouch = null; lastDist = null;
+  });
+
+  document.getElementById('zoom-in').addEventListener('click', () => { camScale = Math.min(3, camScale * 1.2); drawGraph(); });
+  document.getElementById('zoom-out').addEventListener('click', () => { camScale = Math.max(0.3, camScale * 0.8); drawGraph(); });
+  document.getElementById('zoom-reset').addEventListener('click', () => {
+    camX = canvas.width / 2; camY = canvas.height / 2; camScale = 1;
+    expandedNodes.clear(); virtualNodes = [];
+    drawGraph();
+  });
   document.getElementById('add-node-btn').addEventListener('click', () => openCapture());
 }
 
+/* ── 펼치기/접기 처리 ── */
+function handleExpand(hit) {
+  if (!canExpand(hit)) {
+    showToast('더 이상 펼칠 하위 항목이 없습니다');
+    return;
+  }
+  if (expandedNodes.has(hit.id)) {
+    // 접기: 해당 노드와 모든 자손 가상 노드 id를 expandedNodes에서 제거
+    collapseNode(hit.id);
+  } else {
+    expandedNodes.add(hit.id);
+  }
+  rebuildVirtualNodes();
+  drawGraph();
+}
+
+function collapseNode(id) {
+  expandedNodes.delete(id);
+  // 이 노드를 parentId로 갖는 가상 노드들도 재귀로 접기
+  virtualNodes.filter(v => v.parentId === id).forEach(v => collapseNode(v.id));
+}
+
+/* ── findNode: 실제 노드 + 가상 노드 모두 검색 ── */
 function findNode(wx, wy) {
+  // 가상 노드 먼저 (위에 그려지므로)
+  for (const vn of [...virtualNodes].reverse()) {
+    const r = vn.type === 'project' ? 22 : vn.type === 'todo' ? 17 : 14;
+    if (Math.hypot(wx - vn.x, wy - vn.y) < r) return vn;
+  }
+  // 실제 노드
   for (const node of [...state.nodes].reverse()) {
     const r = node.isRoot ? 36 : 26;
-    if (Math.hypot(wx - node.x, wy - node.y) < r) return node;
+    if (Math.hypot(wx - node.x, wy - node.y) < r) return { ...node, _real: true };
   }
   return null;
 }
@@ -1063,7 +1346,7 @@ function renderPanelProjects(node) {
         saveData();
         renderPanelProjects(getNode(currentNodeId));
         renderPanelProgress(getNode(currentNodeId));
-        renderCardView(); drawGraph();
+        renderCardView(); rebuildVirtualNodes(); drawGraph();
       });
 
       todoRow.addEventListener('click', e => {
@@ -1159,7 +1442,7 @@ function renderPlans(plansEl, todo, color, proj, node) {
       saveData();
       renderPanelProjects(getNode(currentNodeId));
       renderPanelProgress(getNode(currentNodeId));
-      renderCardView(); drawGraph();
+      renderCardView(); rebuildVirtualNodes(); drawGraph();
     });
 
     planRow.addEventListener('click', e => {
@@ -1465,15 +1748,42 @@ function luminance(hex) {
   return 0.299*r + 0.587*g + 0.114*b;
 }
 
+/* ── projects → 칸반 col 매핑 ── */
+function projStatusToCol(status) {
+  if (status === 'done')  return 'done';
+  if (status === 'doing') return 'doing';
+  if (status === 'review') return 'review';
+  return 'todo';
+}
+function colToStatus(colId) {
+  if (colId === 'done')   return 'done';
+  if (colId === 'doing')  return 'doing';
+  if (colId === 'review') return 'review';
+  return 'todo';
+}
+
+/* ── projects 전체 수집 (현재 분야의 모든 노드) ── */
+function getProjectsForField(field) {
+  const result = [];
+  state.nodes.filter(n => n.field === field).forEach(node => {
+    (node.projects || []).forEach(proj => {
+      result.push({ ...proj, _nodeId: node.id, _nodeLabel: node.label });
+    });
+  });
+  return result;
+}
+
 function renderKanban() {
   renderKanbanSelector();
   const board = document.getElementById('kanban-board');
   board.innerHTML = '';
   const cols = getKanbanCols(currentKanbanField);
-  const cards = state.kanban[currentKanbanField] || [];
+
+  // projects 기반으로 카드 목록 생성
+  const allProjects = getProjectsForField(currentKanbanField);
 
   cols.forEach(col => {
-    const colCards = cards.filter(c => c.col === col.id);
+    const colProjects = allProjects.filter(p => projStatusToCol(p.status) === col.id);
     const colEl = document.createElement('div');
     colEl.className = 'kanban-col';
     colEl.dataset.col = col.id;
@@ -1482,7 +1792,7 @@ function renderKanban() {
       <div class="col-header">
         <div class="col-dot" style="background:${col.color}"></div>
         <div class="col-name">${col.name}</div>
-        <div class="col-count">${colCards.length}</div>
+        <div class="col-count">${colProjects.length}</div>
       </div>
       <div class="col-cards" data-col="${col.id}"></div>
       <div class="col-add"><button class="col-add-btn" data-col="${col.id}">＋ 추가</button></div>
@@ -1490,71 +1800,107 @@ function renderKanban() {
     board.appendChild(colEl);
 
     const cardsEl = colEl.querySelector('.col-cards');
-    colCards.forEach(card => {
-      cardsEl.appendChild(buildKanbanCard(card));
+    colProjects.forEach(proj => {
+      cardsEl.appendChild(buildKanbanCard(proj, col));
     });
 
-    // Drag over col
+    // 드래그 드롭 → proj.status 직접 업데이트
     colEl.addEventListener('dragover', e => { e.preventDefault(); colEl.classList.add('drag-over'); });
     colEl.addEventListener('dragleave', () => colEl.classList.remove('drag-over'));
     colEl.addEventListener('drop', e => {
       e.preventDefault();
       colEl.classList.remove('drag-over');
       if (!dragCard) return;
-      const cards = state.kanban[currentKanbanField];
-      const idx = cards.findIndex(c => c.id === dragCard);
-      if (idx >= 0) { cards[idx].col = col.id; saveData(); renderKanban(); showToast(`카드를 "${col.name}"으로 이동했습니다`); }
+      // dragCard = { nodeId, projId }
+      const node = getNode(dragCard.nodeId);
+      if (!node) return;
+      const proj = (node.projects || []).find(p => p.id === dragCard.projId);
+      if (!proj) return;
+      proj.status = colToStatus(col.id);
+      saveData();
+      renderKanban();
+      // 업무 패널이 열려있으면 동기화
+      if (currentNodeId) renderPanelProjects(getNode(currentNodeId));
+      showToast(`"${proj.title}"을 "${col.name}"으로 이동했습니다`);
     });
 
-    colEl.querySelector('.col-add-btn').addEventListener('click', () => openKanbanCardModal(null, col.id));
+    colEl.querySelector('.col-add-btn').addEventListener('click', () => openKanbanAddModal(col.id));
   });
 }
 
-function buildKanbanCard(card) {
+function buildKanbanCard(proj, col) {
   const el = document.createElement('div');
   el.className = 'kanban-card';
   el.draggable = true;
-  const total = card.tasks.length, done = card.tasks.filter(t=>t.done).length;
-  const pct = total > 0 ? Math.round(done/total*100) : null;
   const f = FIELDS[currentKanbanField];
+
+  // 할 일 진행률 계산
+  const todos = proj.todos || [];
+  const totalTodos = todos.length;
+  const doneTodos = todos.filter(t => t.done).length;
+  const pct = totalTodos > 0 ? Math.round(doneTodos / totalTodos * 100) : null;
+
   el.innerHTML = `
-    <div class="kc-title">${card.title}</div>
-    ${card.note ? `<div class="kc-tags"><span class="kc-tag" style="background:${f.color}22;color:${f.color}">${card.note}</span></div>` : ''}
-    ${pct !== null ? `<div class="kc-prog"><div class="kc-prog-label">${done}/${total} 완료</div><div class="kc-prog-bar"><div class="kc-prog-fill" style="width:${pct}%;background:${pct===100?'#639922':f.color}"></div></div></div>` : ''}
+    <div class="kc-title">${proj.title}</div>
+    ${proj._nodeLabel ? `<div class="kc-tags"><span class="kc-tag" style="background:${f.color}22;color:${f.color}">${proj._nodeLabel}</span></div>` : ''}
+    ${pct !== null ? `
+      <div class="kc-prog">
+        <div class="kc-prog-label">${doneTodos}/${totalTodos} 할 일 완료</div>
+        <div class="kc-prog-bar"><div class="kc-prog-fill" style="width:${pct}%;background:${pct===100?'#68C268':f.color}"></div></div>
+      </div>` : ''}
   `;
-  el.addEventListener('dragstart', () => { dragCard = card.id; dragFromCol = card.col; el.classList.add('dragging'); });
-  el.addEventListener('dragend', () => { dragCard = null; el.classList.remove('dragging'); document.querySelectorAll('.kanban-col').forEach(c=>c.classList.remove('drag-over')); });
-  el.addEventListener('click', () => openKanbanCardModal(card, card.col));
-  // Touch drag (mobile)
+
+  el.addEventListener('dragstart', () => {
+    dragCard = { nodeId: proj._nodeId, projId: proj.id };
+    el.classList.add('dragging');
+  });
+  el.addEventListener('dragend', () => {
+    dragCard = null;
+    el.classList.remove('dragging');
+    document.querySelectorAll('.kanban-col').forEach(c => c.classList.remove('drag-over'));
+  });
+
+  // 클릭 → 해당 노드 패널 열기
+  el.addEventListener('click', () => {
+    openNodePanel(proj._nodeId);
+    showToast(`"${proj.title}" 프로젝트를 업무 보드에서 확인하세요`);
+  });
+
+  // 터치
   let touchStart = null;
-  el.addEventListener('touchstart', e => { touchStart = { x:e.touches[0].clientX, y:e.touches[0].clientY }; }, {passive:true});
+  el.addEventListener('touchstart', e => { touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }, { passive: true });
   el.addEventListener('touchend', e => {
     if (!touchStart) return;
     const dx = Math.abs(e.changedTouches[0].clientX - touchStart.x);
     const dy = Math.abs(e.changedTouches[0].clientY - touchStart.y);
-    if (dx < 8 && dy < 8) openKanbanCardModal(card, card.col);
+    if (dx < 8 && dy < 8) openNodePanel(proj._nodeId);
     touchStart = null;
   });
+
   return el;
 }
 
-// Kanban card modal (reuse event modal)
-let editingCardId = null, editingCardColDefault = null;
-function openKanbanCardModal(card, defaultCol) {
-  editingCardId = card ? card.id : null;
-  editingCardColDefault = defaultCol;
-  document.getElementById('event-modal-title').textContent = card ? '카드 편집' : '카드 추가';
-  document.getElementById('event-name').value = card ? card.title : '';
-  document.getElementById('event-field').value = currentKanbanField;
-  document.getElementById('event-date').style.display = 'none';
-  document.getElementById('event-note').value = card ? (card.note || '') : '';
-  document.getElementById('event-delete').style.display = card ? 'block' : 'none';
-  document.getElementById('event-modal-overlay').dataset.mode = 'kanban';
-  document.getElementById('event-modal-overlay').classList.add('open');
-  setTimeout(()=>document.getElementById('event-name').focus(),60);
+/* ── 칸반에서 새 프로젝트 추가 → 해당 분야 기본 노드에 저장 ── */
+function openKanbanAddModal(defaultColId) {
+  const name = prompt('프로젝트 이름을 입력하세요:');
+  if (!name || !name.trim()) return;
+  // 현재 분야의 최상위 노드(분야 노드 자체)에 추가
+  const fieldNode = getNode(currentKanbanField);
+  if (!fieldNode) { showToast('분야 노드를 찾을 수 없습니다'); return; }
+  if (!fieldNode.projects) fieldNode.projects = [];
+  fieldNode.projects.push({
+    id: 'wp' + Date.now(),
+    title: name.trim(),
+    status: colToStatus(defaultColId),
+    todos: []
+  });
+  saveData();
+  renderKanban();
+  showToast(`"${name.trim()}" 프로젝트가 추가되었습니다`);
 }
 
-document.getElementById('add-kanban-card-btn').addEventListener('click', () => openKanbanCardModal(null, KANBAN_COLS[currentKanbanField][0].id));
+// Kanban card modal — 이제 openKanbanAddModal로 대체됨 (하위 호환용 stub)
+let editingCardId = null, editingCardColDefault = null;
 
 /* ═══════════════════════════════════════════════
    CALENDAR
@@ -1668,40 +2014,23 @@ document.getElementById('event-save').addEventListener('click', () => {
   const field = document.getElementById('event-field').value;
   const note = document.getElementById('event-note').value.trim();
 
-  if (mode === 'event') {
-    const date = document.getElementById('event-date').value;
-    if (!state.events) state.events = [];
-    if (editingEventId) {
-      const idx = state.events.findIndex(e=>e.id===editingEventId);
-      if (idx>=0) state.events[idx] = {...state.events[idx], title:name, field, date, note};
-    } else {
-      state.events.push({ id:'ev'+Date.now(), title:name, field, date, note });
-    }
-    saveData(); closeEventModal(); renderCalGrid(); showToast(editingEventId?'일정이 수정되었습니다':'일정이 추가되었습니다');
+  // 달력 일정 저장만 담당 (칸반은 openKanbanAddModal에서 직접 처리)
+  const date = document.getElementById('event-date').value;
+  if (!state.events) state.events = [];
+  if (editingEventId) {
+    const idx = state.events.findIndex(e => e.id === editingEventId);
+    if (idx >= 0) state.events[idx] = { ...state.events[idx], title: name, field, date, note };
   } else {
-    // kanban card
-    const col = editingCardColDefault || KANBAN_COLS[currentKanbanField][0].id;
-    if (!state.kanban[field]) state.kanban[field] = [];
-    if (editingCardId) {
-      const idx = state.kanban[field].findIndex(c=>c.id===editingCardId);
-      if (idx>=0) state.kanban[field][idx] = {...state.kanban[field][idx], title:name, note};
-    } else {
-      state.kanban[field].push({ id:'kc'+Date.now(), col, title:name, note, tasks:[] });
-    }
-    saveData(); closeEventModal();
-    if (field !== currentKanbanField) { currentKanbanField = field; }
-    renderKanban(); showToast(editingCardId?'카드가 수정되었습니다':'카드가 추가되었습니다');
+    state.events.push({ id: 'ev' + Date.now(), title: name, field, date, note });
   }
+  saveData(); closeEventModal(); renderCalGrid();
+  showToast(editingEventId ? '일정이 수정되었습니다' : '일정이 추가되었습니다');
 });
 
 document.getElementById('event-delete').addEventListener('click', () => {
-  const mode = document.getElementById('event-modal-overlay').dataset.mode;
-  if (mode === 'event' && editingEventId) {
-    state.events = state.events.filter(e=>e.id!==editingEventId);
+  if (editingEventId) {
+    state.events = state.events.filter(e => e.id !== editingEventId);
     saveData(); closeEventModal(); renderCalGrid(); showToast('일정이 삭제되었습니다');
-  } else if (mode === 'kanban' && editingCardId) {
-    state.kanban[currentKanbanField] = state.kanban[currentKanbanField].filter(c=>c.id!==editingCardId);
-    saveData(); closeEventModal(); renderKanban(); showToast('카드가 삭제되었습니다');
   }
 });
 
