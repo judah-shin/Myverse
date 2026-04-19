@@ -2047,10 +2047,13 @@ document.querySelectorAll('.due-preset').forEach(btn => {
 
 document.getElementById('due-date-save').addEventListener('click', () => {
   if (!_dueTarget) return;
-  const startVal = document.getElementById('due-start-input').value;
-  const endVal   = document.getElementById('due-date-input').value;
-  _dueTarget.startDate = startVal || undefined;
-  _dueTarget.dueDate   = endVal   || undefined;
+  const startVal = document.getElementById('due-start-input').value.trim();
+  const endVal   = document.getElementById('due-date-input').value.trim();
+
+  // undefined 대신 null 사용 → JSON.stringify 시 키가 유지됨
+  _dueTarget.startDate = startVal || null;
+  _dueTarget.dueDate   = endVal   || null;
+
   document.getElementById('due-date-overlay').classList.remove('open');
   if (_dueCb) _dueCb();
   if (!startVal && !endVal) showToast('기간이 제거되었습니다');
@@ -2064,22 +2067,48 @@ function getProjectEvents() {
   state.nodes.forEach(node => {
     if (!node.field) return;
     (node.projects || []).forEach(proj => {
-      if (proj.dueDate) evs.push({
-        id: 'proj_' + proj.id, title: proj.title, field: node.field,
-        date: proj.dueDate, startDate: proj.startDate || null,
-        note: '프로젝트 마감', _readOnly: true, _isRange: !!(proj.startDate && proj.dueDate)
+      const projStart = proj.startDate || null;
+      const projEnd   = proj.dueDate   || null;
+      if (projEnd) evs.push({
+        id: 'proj_' + proj.id,
+        title: proj.title,
+        field: node.field,
+        date: projEnd,
+        startDate: projStart,
+        dueDate: projEnd,
+        note: '프로젝트 마감',
+        _readOnly: true,
+        _isRange: !!(projStart && projEnd)
       });
+
       (proj.todos || []).forEach(todo => {
-        if (todo.dueDate) evs.push({
-          id: 'todo_' + todo.id, title: todo.text, field: node.field,
-          date: todo.dueDate, startDate: todo.startDate || null,
-          note: '할 일 마감', _readOnly: true, _isRange: !!(todo.startDate && todo.dueDate)
+        const todoStart = todo.startDate || null;
+        const todoEnd   = todo.dueDate   || null;
+        if (todoEnd) evs.push({
+          id: 'todo_' + todo.id,
+          title: todo.text,
+          field: node.field,
+          date: todoEnd,
+          startDate: todoStart,
+          dueDate: todoEnd,
+          note: '할 일 마감',
+          _readOnly: true,
+          _isRange: !!(todoStart && todoEnd)
         });
+
         (todo.plans || []).forEach(plan => {
-          if (plan.dueDate) evs.push({
-            id: 'plan_' + plan.id, title: plan.text, field: node.field,
-            date: plan.dueDate, startDate: plan.startDate || null,
-            note: '세부 계획 마감', _readOnly: true, _isRange: !!(plan.startDate && plan.dueDate)
+          const planStart = plan.startDate || null;
+          const planEnd   = plan.dueDate   || null;
+          if (planEnd) evs.push({
+            id: 'plan_' + plan.id,
+            title: plan.text,
+            field: node.field,
+            date: planEnd,
+            startDate: planStart,
+            dueDate: planEnd,
+            note: '세부 계획 마감',
+            _readOnly: true,
+            _isRange: !!(planStart && planEnd)
           });
         });
       });
@@ -2899,10 +2928,22 @@ function renderCalHeader() {
 /* ── dateRange 생성 헬퍼 ── */
 function makeDateRange(startDate, endDate) {
   const range = [];
-  const cur = new Date(startDate);
-  const end = new Date(endDate);
+  if (!startDate || !endDate) return range;
+
+  // YYYY-MM-DD를 로컬 날짜로 파싱 (타임존 오차 방지)
+  function parseLocal(str) {
+    const [y, m, d] = str.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+
+  const cur = parseLocal(startDate);
+  const end = parseLocal(endDate);
+
   while (cur <= end) {
-    range.push(cur.toISOString().slice(0, 10));
+    const y = cur.getFullYear();
+    const m = String(cur.getMonth() + 1).padStart(2, '0');
+    const d = String(cur.getDate()).padStart(2, '0');
+    range.push(`${y}-${m}-${d}`);
     cur.setDate(cur.getDate() + 1);
   }
   return range;
