@@ -2983,41 +2983,89 @@ function renderCalGrid() {
     cellMap.set(dateStr, el);
   }
 
-  /* ── 2. 기간 바 렌더링 — dateRange 배열 기반 ── */
+  /* ── 2. 기간 바 렌더링 — 레인(lane) 시스템 ── */
   const projectEvs = getProjectEvents();
 
-  projectEvs.forEach(ev => {
-    if (!ev._isRange || !ev.startDate || !ev.dueDate) return;
-    const f = FIELDS[ev.field];
-    if (!f) return;
+  // ① 기간이 있는 이벤트만 추출 후 기간 긴 순으로 정렬 (우선순위 확보)
+  const rangeEvs = projectEvs
+    .filter(ev => ev._isRange && ev.startDate && ev.dueDate && FIELDS[ev.field])
+    .map(ev => ({
+      ...ev,
+      dateRange: makeDateRange(ev.startDate, ev.dueDate),
+      color: FIELDS[ev.field].color
+    }))
+    .filter(ev => ev.dateRange.length > 0)
+    .sort((a, b) => b.dateRange.length - a.dateRange.length); // 긴 것 먼저
+
+  // ② 레인 배정: 날짜별로 점유된 레인을 추적해서 겹치지 않는 레인 할당
+  //    dateStr → Set<laneIndex> 형태로 점유 추적
+  const laneOccupied = new Map(); // dateStr → Set of occupied lanes
+
+  rangeEvs.forEach(ev => {
     if (activeFilters.size > 0 && !activeFilters.has(ev.field)) return;
 
-    // startDate ~ dueDate 사이의 모든 날짜 배열 생성
-    const dateRange = makeDateRange(ev.startDate, ev.dueDate);
-    const total = dateRange.length;
+    // 이 이벤트가 차지하는 날짜 중 달력에 있는 것만
+    const calDates = ev.dateRange.filter(d => cellMap.has(d));
+    if (calDates.length === 0) return;
 
-    dateRange.forEach((dateStr, idx) => {
+    // 겹치지 않는 가장 낮은 레인 찾기
+    let lane = 0;
+    while (true) {
+      const conflict = calDates.some(d => {
+        const occ = laneOccupied.get(d);
+        return occ && occ.has(lane);
+      });
+      if (!conflict) break;
+      lane++;
+    }
+
+    // 레인 점유 등록
+    calDates.forEach(d => {
+      if (!laneOccupied.has(d)) laneOccupied.set(d, new Set());
+      laneOccupied.get(d).add(lane);
+    });
+
+    ev._lane = lane;
+  });
+
+  // ③ 셀별로 최대 레인 수 파악 → 레인 수만큼 플레이스홀더 미리 삽입
+  //    각 셀에 레인 순서대로 div 슬롯을 만들고 이벤트로 채움
+  const maxLane = rangeEvs.reduce((m, ev) => Math.max(m, ev._lane ?? 0), -1);
+
+  // 셀마다 레인 슬롯 배열 생성 (null = 빈 슬롯)
+  const cellSlots = new Map(); // dateStr → Array<element|null>
+  cellMap.forEach((el, dateStr) => {
+    const slots = Array(maxLane + 1).fill(null);
+    cellSlots.set(dateStr, slots);
+  });
+
+  // ④ 각 이벤트를 해당 레인 슬롯에 배치
+  rangeEvs.forEach(ev => {
+    if (ev._lane === undefined) return;
+    if (activeFilters.size > 0 && !activeFilters.has(ev.field)) return;
+
+    const total = ev.dateRange.length;
+
+    ev.dateRange.forEach((dateStr, idx) => {
       const el = cellMap.get(dateStr);
-      if (!el) return; // 이번 달 달력에 없는 날짜는 스킵
+      if (!el) return;
 
       const isFirst  = idx === 0;
       const isLast   = idx === total - 1;
-      const isSingle = total === 1;
 
-      // 주의: 셀의 padding(6px)을 음수 마진으로 돌파해서 셀 경계까지 채움
-      const marginL = isFirst  ? '0'    : '-7px';
-      const marginR = isLast   ? '0'    : '-7px';
-      const radiusL = isFirst  ? '4px'  : '0';
-      const radiusR = isLast   ? '4px'  : '0';
-      const borderL = isFirst  ? `2px solid ${f.color}` : 'none';
-      const borderR = isLast   ? `2px solid ${f.color}` : 'none';
+      const marginL = isFirst ? '0'    : '-7px';
+      const marginR = isLast  ? '0'    : '-7px';
+      const radiusL = isFirst ? '4px'  : '0';
+      const radiusR = isLast  ? '4px'  : '0';
+      const borderL = isFirst ? `2px solid ${ev.color}` : 'none';
+      const borderR = isLast  ? `2px solid ${ev.color}` : 'none';
 
       const bar = document.createElement('div');
       bar.style.cssText = `
-        background:${f.color}2a;
-        color:${f.color};
-        border-top:1.5px solid ${f.color}70;
-        border-bottom:1.5px solid ${f.color}70;
+        background:${ev.color}2a;
+        color:${ev.color};
+        border-top:1.5px solid ${ev.color}70;
+        border-bottom:1.5px solid ${ev.color}70;
         border-left:${borderL};
         border-right:${borderR};
         border-radius:${radiusL} ${radiusR} ${radiusR} ${radiusL};
@@ -3035,7 +3083,25 @@ function renderCalGrid() {
       bar.textContent = isFirst ? ev.title : '';
       bar.title = `${ev.title} (${ev.startDate} ~ ${ev.dueDate})`;
       bar.addEventListener('click', e => e.stopPropagation());
-      el.appendChild(bar);
+
+      const slots = cellSlots.get(dateStr);
+      if (slots) slots[ev._lane] = bar;
+    });
+  });
+
+  // ⑤ 각 셀에 레인 순서대로 DOM 삽입 (빈 레인은 플레이스홀더)
+  cellSlots.forEach((slots, dateStr) => {
+    const el = cellMap.get(dateStr);
+    if (!el) return;
+    slots.forEach(barEl => {
+      if (barEl) {
+        el.appendChild(barEl);
+      } else if (slots.some(s => s !== null)) {
+        // 이 날짜에 다른 레인의 바가 있으면 빈 자리를 플레이스홀더로 채움
+        const ph = document.createElement('div');
+        ph.style.cssText = 'min-height:14px;margin-bottom:2px;';
+        el.appendChild(ph);
+      }
     });
   });
 
