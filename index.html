@@ -282,22 +282,13 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); flex: 1; overflow-y: auto; }
 .cal-day {
   border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
-  padding: 6px 6px 4px; min-height: 90px; cursor: pointer; transition: background .12s; position: relative;
+  padding: 6px 6px 4px; min-height: 90px; cursor: pointer; transition: background .12s; position: relative; overflow: visible;
 }
 .cal-day:hover { background: var(--bg3); }
 .cal-day.other-month { opacity: .35; }
 .cal-day.today .day-num { background: var(--accent); color: white; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
 .day-num { font-size: 12px; color: var(--text2); margin-bottom: 4px; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
 .cal-event { font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
-.cal-range-bar {
-  font-size: 9px; padding: 2px 0; margin-bottom: 2px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  min-height: 16px; display: flex; align-items: center;
-  /* 셀 좌우 padding(6px)을 음수 마진으로 상쇄 → 경계까지 꽉 채움 */
-  margin-left: -6px;
-  margin-right: -7px; /* border 1px 포함 */
-  padding-left: 4px;
-}
 .cal-more { font-size: 10px; color: var(--text3); padding: 1px 4px; }
 
 /* ─── Event Detail Modal ─── */
@@ -2905,121 +2896,148 @@ function renderCalHeader() {
     `${calYear}년 ${calMonth+1}월`;
 }
 
+/* ── dateRange 생성 헬퍼 ── */
+function makeDateRange(startDate, endDate) {
+  const range = [];
+  const cur = new Date(startDate);
+  const end = new Date(endDate);
+  while (cur <= end) {
+    range.push(cur.toISOString().slice(0, 10));
+    cur.setDate(cur.getDate() + 1);
+  }
+  return range;
+}
+
 function renderCalGrid() {
   const grid = document.getElementById('cal-grid');
   grid.innerHTML = '';
-  const firstDay = new Date(calYear, calMonth, 1).getDay();
-  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
-  const daysInPrev = new Date(calYear, calMonth, 0).getDate();
-  const todayStr = today.toISOString().slice(0,10);
-  const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
 
-  // 이달 모든 날짜 문자열 미리 계산
-  const allEvs = [...(state.events || []), ...getProjectEvents()];
+  const firstDay    = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const daysInPrev  = new Date(calYear, calMonth, 0).getDate();
+  const todayStr    = today.toISOString().slice(0, 10);
+  const totalCells  = Math.ceil((firstDay + daysInMonth) / 7) * 7;
+
+  /* ── 1. 셀 DOM 생성 + dateStr→el Map ── */
+  const cellMap = new Map(); // dateStr → DOM element
 
   for (let i = 0; i < totalCells; i++) {
     let day, month, year, isOther = false;
-    if (i < firstDay) { day = daysInPrev - firstDay + 1 + i; month = calMonth - 1; year = calYear; isOther = true; }
-    else if (i >= firstDay + daysInMonth) { day = i - firstDay - daysInMonth + 1; month = calMonth + 1; year = calYear; isOther = true; }
-    else { day = i - firstDay + 1; month = calMonth; year = calYear; }
-    const realMonth = ((month % 12) + 12) % 12;
-    const realYear = year + Math.floor(month / 12);
-    const dateStr = `${realYear}-${String(realMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-    const isToday = dateStr === todayStr;
+    if (i < firstDay) {
+      day = daysInPrev - firstDay + 1 + i; month = calMonth - 1; year = calYear; isOther = true;
+    } else if (i >= firstDay + daysInMonth) {
+      day = i - firstDay - daysInMonth + 1; month = calMonth + 1; year = calYear; isOther = true;
+    } else {
+      day = i - firstDay + 1; month = calMonth; year = calYear;
+    }
+    const rm  = ((month % 12) + 12) % 12;
+    const ry  = year + Math.floor(month / 12);
+    const dateStr = `${ry}-${String(rm + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
-    const cell = document.createElement('div');
-    cell.className = `cal-day${isOther?' other-month':''}${isToday?' today':''}`;
-    cell.innerHTML = `<div class="day-num">${day}</div>`;
+    const el = document.createElement('div');
+    el.className = `cal-day${isOther ? ' other-month' : ''}${dateStr === todayStr ? ' today' : ''}`;
+    el.innerHTML = `<div class="day-num">${day}</div>`;
+    el.addEventListener('click', () => openEventModal(null, dateStr));
+    grid.appendChild(el);
+    cellMap.set(dateStr, el);
+  }
 
-    // 이 날짜에 표시할 이벤트 분류
-    const pointEvs = [];  // 완료일만 있는 이벤트
-    const barEvs   = [];  // 기간 바 이벤트 (startDate ~ dueDate 안에 포함)
+  /* ── 2. 기간 바 렌더링 — dateRange 배열 기반 ── */
+  const projectEvs = getProjectEvents();
 
-    allEvs.forEach(ev => {
-      if (!activeFilters.has(ev.field)) return;
-      const f = FIELDS[ev.field];
-      if (!f) return;
+  projectEvs.forEach(ev => {
+    if (!ev._isRange || !ev.startDate || !ev.dueDate) return;
+    const f = FIELDS[ev.field];
+    if (!f) return;
+    if (activeFilters.size > 0 && !activeFilters.has(ev.field)) return;
 
-      if (ev._isRange && ev.startDate && ev.dueDate) {
-        // 기간 바: 시작~종료 사이에 있는 날짜
-        if (dateStr >= ev.startDate && dateStr <= ev.dueDate) {
-          const isStart = dateStr === ev.startDate;
-          const isEnd   = dateStr === ev.dueDate;
-          barEvs.push({ ...ev, isStart, isEnd, color: f.color });
-        }
-      } else if (ev.date === dateStr) {
-        // 완료일만 있는 이벤트
-        pointEvs.push({ ...ev, color: f.color });
-      }
-    });
+    // startDate ~ dueDate 사이의 모든 날짜 배열 생성
+    const dateRange = makeDateRange(ev.startDate, ev.dueDate);
+    const total = dateRange.length;
 
-    // 기간 바 렌더링
-    barEvs.forEach(ev => {
+    dateRange.forEach((dateStr, idx) => {
+      const el = cellMap.get(dateStr);
+      if (!el) return; // 이번 달 달력에 없는 날짜는 스킵
+
+      const isFirst  = idx === 0;
+      const isLast   = idx === total - 1;
+      const isSingle = total === 1;
+
+      // 주의: 셀의 padding(6px)을 음수 마진으로 돌파해서 셀 경계까지 채움
+      const marginL = isFirst  ? '0'    : '-7px';
+      const marginR = isLast   ? '0'    : '-7px';
+      const radiusL = isFirst  ? '4px'  : '0';
+      const radiusR = isLast   ? '4px'  : '0';
+      const borderL = isFirst  ? `2px solid ${f.color}` : 'none';
+      const borderR = isLast   ? `2px solid ${f.color}` : 'none';
+
       const bar = document.createElement('div');
-      bar.className = 'cal-range-bar';
-
-      // 시작/끝/중간에 따라 radius와 border 다르게
-      let borderLeft  = 'none';
-      let borderRight = 'none';
-      let borderRadius = '0';
-      if (ev.isStart && ev.isEnd) {
-        borderLeft = `2px solid ${ev.color}`;
-        borderRight = `2px solid ${ev.color}`;
-        borderRadius = '4px';
-      } else if (ev.isStart) {
-        borderLeft = `2px solid ${ev.color}`;
-        borderRadius = '4px 0 0 4px';
-      } else if (ev.isEnd) {
-        borderRight = `2px solid ${ev.color}`;
-        borderRadius = '0 4px 4px 0';
-      }
-
       bar.style.cssText = `
-        background:${ev.color}2a;
-        color:${ev.color};
-        border-top:1px solid ${ev.color}55;
-        border-bottom:1px solid ${ev.color}55;
-        border-left:${borderLeft};
-        border-right:${borderRight};
-        border-radius:${borderRadius};
-        margin-left:${ev.isStart ? '-4px' : '-7px'};
-        margin-right:${ev.isEnd ? '-5px' : '-7px'};
-        padding-left:${ev.isStart ? '6px' : '2px'};
-        margin-bottom:2px;
-        min-height:16px;
-        display:flex;align-items:center;
-        white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+        background:${f.color}2a;
+        color:${f.color};
+        border-top:1.5px solid ${f.color}70;
+        border-bottom:1.5px solid ${f.color}70;
+        border-left:${borderL};
+        border-right:${borderR};
+        border-radius:${radiusL} ${radiusR} ${radiusR} ${radiusL};
+        margin:0 ${marginR} 2px ${marginL};
+        padding:1px 4px;
         font-size:9px;
+        font-weight:500;
+        min-height:14px;
+        display:flex;
+        align-items:center;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
       `;
-      bar.textContent = ev.isStart ? ev.title : '';
+      bar.textContent = isFirst ? ev.title : '';
       bar.title = `${ev.title} (${ev.startDate} ~ ${ev.dueDate})`;
-      bar.addEventListener('click', e => { e.stopPropagation(); });
-      cell.appendChild(bar);
+      bar.addEventListener('click', e => e.stopPropagation());
+      el.appendChild(bar);
+    });
+  });
+
+  /* ── 3. 일반 이벤트 + 완료일만 있는 프로젝트 이벤트 ── */
+  const regularEvs = state.events || [];
+
+  cellMap.forEach((el, dateStr) => {
+    const dayEvs = [];
+
+    regularEvs.forEach(ev => {
+      if (ev.date !== dateStr) return;
+      if (activeFilters.size > 0 && !activeFilters.has(ev.field)) return;
+      const f = FIELDS[ev.field];
+      if (f) dayEvs.push({ ...ev, color: f.color });
     });
 
-    // 완료일 이벤트 렌더링 (점 형태)
-    const shownPt = pointEvs.slice(0, Math.max(0, 3 - barEvs.length));
-    shownPt.forEach(ev => {
+    projectEvs.forEach(ev => {
+      if (ev._isRange) return; // 기간 바는 위에서 처리 완료
+      if (ev.date !== dateStr) return;
+      if (activeFilters.size > 0 && !activeFilters.has(ev.field)) return;
+      const f = FIELDS[ev.field];
+      if (f) dayEvs.push({ ...ev, color: f.color });
+    });
+
+    dayEvs.slice(0, 3).forEach(ev => {
       const evEl = document.createElement('div');
       evEl.className = 'cal-event';
       evEl.style.cssText = `background:${ev.color}22;color:${ev.color}`;
       evEl.textContent = ev.title;
-      evEl.addEventListener('click', e => { e.stopPropagation(); if (!ev._readOnly) openEventModal(ev, dateStr); });
-      cell.appendChild(evEl);
+      evEl.addEventListener('click', e => {
+        e.stopPropagation();
+        if (!ev._readOnly) openEventModal(ev, dateStr);
+      });
+      el.appendChild(evEl);
     });
 
-    const totalShown = barEvs.length + shownPt.length;
-    const totalAll   = barEvs.length + pointEvs.length;
-    if (totalAll > totalShown) {
+    if (dayEvs.length > 3) {
       const more = document.createElement('div');
       more.className = 'cal-more';
-      more.textContent = `+${totalAll - totalShown}개 더`;
-      cell.appendChild(more);
+      more.textContent = `+${dayEvs.length - 3}개 더`;
+      el.appendChild(more);
     }
-
-    cell.addEventListener('click', () => openEventModal(null, dateStr));
-    grid.appendChild(cell);
-  }
+  });
 }
 
 document.getElementById('cal-prev').addEventListener('click', () => { calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCalHeader(); renderCalGrid(); });
