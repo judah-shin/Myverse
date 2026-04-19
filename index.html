@@ -351,6 +351,227 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .add-child-btn { display: flex; align-items: center; gap: 5px; padding: 5px 8px; font-size: 11px; color: var(--text3); background: none; border: 1px dashed var(--border2); border-radius: 6px; cursor: pointer; width: 100%; margin-top: 4px; transition: all .12s; }
 .add-child-btn:hover { color: var(--accent2); border-color: var(--accent); }
 
+/* ─── YouTube Channel Board ─── */
+#yt-view.active { display: flex !important; }
+.yt-topbar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px; border-bottom: 1px solid var(--border);
+  flex-shrink: 0; background: var(--bg); flex-wrap: wrap;
+}
+.yt-subtabs { display: flex; gap: 4px; flex: 1; flex-wrap: wrap; }
+.yt-subtab {
+  padding: 5px 13px; border-radius: var(--r); font-size: 12px; font-weight: 500;
+  cursor: pointer; color: var(--text2); border: none; background: none; transition: all .14s;
+}
+.yt-subtab:hover { background: var(--bg3); color: var(--text); }
+.yt-subtab.active { background: var(--bg3); color: var(--c-yt); border: 1px solid var(--border2); }
+.yt-badge { font-size: 10px; background: var(--bg3); color: var(--text3); padding: 1px 5px; border-radius: 8px; margin-left: 4px; }
+.yt-add-btn {
+  padding: 6px 14px; border-radius: var(--r); font-size: 12px; font-weight: 500;
+  background: var(--c-yt-bg2); border: 1px solid var(--c-yt); color: var(--c-yt);
+  cursor: pointer; transition: all .14s; white-space: nowrap;
+}
+.yt-add-btn:hover { background: var(--c-yt); color: white; }
+.yt-body { flex: 1; overflow-y: auto; padding: 20px 24px; }
+.yt-page { display: none; }
+.yt-page.active { display: block; }
+
+/* Stats */
+.yt-stats-row {
+  display: grid; grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: 10px; margin-bottom: 20px;
+}
+.yt-stat-card {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 14px 16px;
+}
+.yt-stat-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+.yt-stat-val { font-size: 26px; font-weight: 600; color: var(--text); font-family: monospace; }
+.yt-stat-sub { font-size: 11px; color: var(--text3); margin-top: 3px; }
+
+/* Section */
+.yt-section-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.yt-section-title { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .07em; }
+.yt-ghost-btn {
+  font-size: 11px; padding: 4px 10px; background: none; color: var(--text2);
+  border: 1px solid var(--border2); border-radius: var(--r); cursor: pointer; transition: all .13s;
+}
+.yt-ghost-btn:hover { background: var(--bg3); color: var(--text); }
+
+/* Pillars grid */
+.yt-pillars-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; margin-bottom: 20px; }
+.yt-pillar-card {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2);
+  padding: 14px; cursor: pointer; transition: all .16s; position: relative; overflow: hidden;
+}
+.yt-pillar-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
+.yt-pillar-card:hover { border-color: var(--border2); transform: translateY(-1px); }
+.yt-pillar-card.active { border-color: rgba(255,255,255,0.18); }
+.yt-pc-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.yt-pc-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; letter-spacing: .04em; }
+.yt-pc-count { font-size: 11px; color: var(--text3); }
+.yt-pc-name { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.yt-pc-eng { font-size: 10px; color: var(--text3); margin-bottom: 6px; }
+.yt-pc-desc { font-size: 11px; color: var(--text2); line-height: 1.5; margin-bottom: 10px; }
+.yt-pc-bar-bg { height: 3px; background: var(--border); border-radius: 2px; }
+.yt-pc-bar { height: 3px; border-radius: 2px; transition: width .4s; }
+.yt-pc-bar-nums { display: flex; justify-content: space-between; margin-top: 4px; }
+.yt-pc-bar-txt { font-size: 10px; color: var(--text3); }
+
+/* Detail panel */
+.yt-detail-panel {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2);
+  padding: 16px 18px; margin-bottom: 20px; display: none;
+}
+.yt-detail-panel.visible { display: block; }
+.yt-detail-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+.yt-detail-dot { width: 8px; height: 8px; border-radius: 50%; }
+.yt-detail-title { font-size: 14px; font-weight: 600; color: var(--text); }
+.yt-filter-row { display: flex; gap: 5px; margin-bottom: 12px; flex-wrap: wrap; }
+.yt-filter-btn {
+  font-size: 11px; padding: 3px 9px; border-radius: 20px;
+  border: 1px solid var(--border2); background: none; color: var(--text2); cursor: pointer; transition: all .12s;
+}
+.yt-filter-btn:hover { background: var(--bg3); }
+.yt-filter-btn.active { background: var(--c-yt-bg2); border-color: var(--c-yt); color: var(--c-yt); }
+
+/* Video list */
+.yt-video-list { display: flex; flex-direction: column; gap: 6px; }
+.yt-video-item {
+  display: grid; grid-template-columns: 28px 1fr auto auto;
+  gap: 10px; align-items: center;
+  padding: 10px 12px; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: var(--r); transition: border-color .12s;
+}
+.yt-video-item:hover { border-color: var(--border2); }
+.yt-vi-seq { font-size: 11px; color: var(--text3); text-align: center; font-family: monospace; }
+.yt-vi-title { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
+.yt-vi-meta { font-size: 11px; color: var(--text3); display: flex; gap: 6px; flex-wrap: wrap; }
+.yt-status-pill {
+  font-size: 10px; font-weight: 700; padding: 2px 9px; border-radius: 20px;
+  white-space: nowrap; cursor: pointer; transition: opacity .12s;
+}
+.yt-status-pill:hover { opacity: .75; }
+.yt-s-idea   { background: rgba(90,90,110,.28);   color: #9898b8; }
+.yt-s-ready  { background: rgba(212,168,75,.15);   color: var(--c-money); }
+.yt-s-filmed { background: rgba(123,159,224,.15);  color: var(--c-work); }
+.yt-s-done   { background: rgba(60,191,160,.15);   color: var(--c-yt); }
+.yt-vi-actions { display: flex; gap: 3px; }
+.yt-tiny-btn {
+  font-size: 11px; padding: 3px 7px; border-radius: 5px;
+  border: 1px solid var(--border); background: none; color: var(--text3);
+  cursor: pointer; transition: all .12s;
+}
+.yt-tiny-btn:hover { background: var(--bg2); color: var(--text); }
+.yt-tiny-btn.del:hover { background: rgba(220,60,60,.14); color: #f07070; border-color: rgba(220,60,60,.3); }
+
+/* Bottom grid */
+.yt-bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+.yt-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 16px 18px; margin-bottom: 16px; }
+
+/* Timeline */
+.yt-tl-item { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.yt-tl-item:last-child { border-bottom: none; }
+.yt-tl-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+.yt-tl-week { font-size: 10px; color: var(--text3); font-family: monospace; margin-bottom: 2px; }
+.yt-tl-vtitle { font-size: 12px; color: var(--text); font-weight: 500; }
+.yt-tl-badge { font-size: 9px; padding: 1px 6px; border-radius: 8px; display: inline-block; margin-top: 3px; }
+
+/* Progress */
+.yt-prog-row { margin-bottom: 12px; }
+.yt-prog-row:last-child { margin-bottom: 0; }
+.yt-prog-lbl { display: flex; justify-content: space-between; margin-bottom: 4px; }
+.yt-prog-name { font-size: 11px; color: var(--text); font-weight: 500; }
+.yt-prog-nums { font-size: 10px; color: var(--text3); }
+.yt-prog-bg { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.yt-prog-fill { height: 4px; border-radius: 2px; transition: width .5s; }
+
+/* Textarea */
+.yt-textarea {
+  width: 100%; min-height: 110px; margin-top: 10px;
+  background: var(--bg3); border: 1px solid var(--border); border-radius: var(--r);
+  padding: 10px 12px; color: var(--text); font-family: inherit; font-size: 13px;
+  line-height: 1.7; resize: vertical; transition: border-color .14s;
+}
+.yt-textarea:focus { outline: none; border-color: var(--border2); }
+.yt-textarea::placeholder { color: var(--text3); }
+
+/* Ideas */
+.yt-ideas-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; margin-bottom: 14px; }
+.yt-idea-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 12px; }
+.yt-idea-hd { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 7px; }
+.yt-idea-title { font-size: 13px; font-weight: 500; color: var(--text); }
+.yt-idea-note { font-size: 11px; color: var(--text2); line-height: 1.5; margin-top: 6px; }
+.yt-idea-date { font-size: 10px; color: var(--text3); margin-top: 7px; }
+.yt-add-idea-btn {
+  padding: 8px 16px; border-radius: var(--r); font-size: 12px;
+  background: var(--bg2); border: 1px dashed var(--border2); color: var(--text2);
+  cursor: pointer; transition: all .13s; width: 100%;
+}
+.yt-add-idea-btn:hover { border-color: var(--c-yt); color: var(--c-yt); }
+
+/* Strategy */
+.yt-strategy-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 16px 18px; margin-bottom: 12px; }
+.yt-strategy-q { font-size: 12px; font-weight: 700; color: var(--accent2); margin-bottom: 8px; }
+.yt-strategy-a { font-size: 12px; color: var(--text2); line-height: 1.75; }
+.yt-strategy-a ul { padding-left: 16px; }
+.yt-strategy-a li { margin-bottom: 4px; }
+
+/* Search */
+.yt-search-row { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+.yt-search-input {
+  flex: 1; min-width: 160px; padding: 7px 12px;
+  background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--r);
+  color: var(--text); font-size: 12px; font-family: inherit;
+}
+.yt-search-input:focus { outline: none; border-color: var(--c-yt); }
+.yt-select {
+  padding: 7px 10px; background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: var(--r); color: var(--text); font-size: 12px; font-family: inherit; cursor: pointer;
+}
+.yt-empty { text-align: center; padding: 28px; color: var(--text3); font-size: 13px; }
+
+/* Modal */
+.yt-modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.65);
+  backdrop-filter: blur(4px); z-index: 250; display: none;
+  align-items: center; justify-content: center;
+}
+.yt-modal-overlay.open { display: flex; }
+.yt-modal-box {
+  background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--r3);
+  padding: 22px; width: 380px; max-width: 95vw; max-height: 90vh; overflow-y: auto;
+  animation: slideDown .2s cubic-bezier(.4,0,.2,1);
+}
+.yt-modal-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 18px; }
+.yt-modal-field { margin-bottom: 12px; }
+.yt-modal-label { font-size: 10px; color: var(--text2); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .05em; }
+.yt-modal-input, .yt-modal-select, .yt-modal-textarea {
+  width: 100%; padding: 8px 11px; background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: var(--r); color: var(--text); font-size: 13px; font-family: inherit; transition: border-color .14s;
+}
+.yt-modal-input:focus, .yt-modal-select:focus, .yt-modal-textarea:focus { outline: none; border-color: var(--c-yt); }
+.yt-modal-input::placeholder, .yt-modal-textarea::placeholder { color: var(--text3); }
+.yt-modal-textarea { resize: vertical; min-height: 72px; line-height: 1.6; }
+.yt-modal-btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+.yt-modal-cancel {
+  padding: 7px 14px; background: none; color: var(--text2);
+  border: 1px solid var(--border2); border-radius: var(--r); font-size: 12px; cursor: pointer; transition: all .12s;
+}
+.yt-modal-cancel:hover { background: var(--bg3); color: var(--text); }
+.yt-modal-confirm {
+  padding: 7px 18px; background: var(--c-yt); color: #fff;
+  border: none; border-radius: var(--r); font-size: 12px; font-weight: 500; cursor: pointer; transition: all .12s;
+}
+.yt-modal-confirm:hover { filter: brightness(1.1); }
+
+/* Responsive override */
+@media (max-width: 768px) {
+  .yt-pillars-grid { grid-template-columns: repeat(2, 1fr); }
+  .yt-stats-row { grid-template-columns: repeat(2, 1fr); }
+  .yt-bottom-grid { grid-template-columns: 1fr; }
+  .yt-ideas-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
 /* ─── Responsive ─── */
 @media (max-width: 768px) {
   .topbar { padding: 8px 12px; }
@@ -377,6 +598,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
       <button class="nav-tab" data-view="graph-view">그래프</button>
       <button class="nav-tab" data-view="kanban-view">칸반</button>
       <button class="nav-tab" data-view="cal-view">달력</button>
+      <button class="nav-tab" data-view="yt-view" style="color:var(--c-yt)">🎬 채널</button>
     </nav>
     <button class="capture-btn" id="open-capture-btn">
       <kbd>⌘K</kbd> 빠른 캡처
@@ -469,6 +691,132 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
       </div>
     </div>
 
+    <!-- ⑤ 유튜브 채널 보드 -->
+    <div class="view" id="yt-view" style="padding:0;overflow:hidden;display:none;flex-direction:column">
+
+      <!-- 채널 서브탭 -->
+      <div class="yt-topbar">
+        <div class="yt-subtabs">
+          <button class="yt-subtab active" data-ytpage="dashboard">◈ 대시보드</button>
+          <button class="yt-subtab" data-ytpage="allvideos">▤ 전체 영상 <span class="yt-badge" id="yt-badge-total">0</span></button>
+          <button class="yt-subtab" data-ytpage="ideas">✦ 아이디어 <span class="yt-badge" id="yt-badge-ideas">0</span></button>
+          <button class="yt-subtab" data-ytpage="strategy">◎ 채널 전략</button>
+        </div>
+        <button class="yt-add-btn" id="yt-add-video-btn">＋ 영상 추가</button>
+      </div>
+
+      <div class="yt-body">
+
+        <!-- 대시보드 페이지 -->
+        <div class="yt-page active" id="ytpage-dashboard">
+          <div class="yt-stats-row" id="yt-stats-row"></div>
+
+          <div class="yt-section-hd">
+            <span class="yt-section-title">콘텐츠 필러</span>
+          </div>
+          <div class="yt-pillars-grid" id="yt-pillars-grid"></div>
+
+          <div class="yt-detail-panel" id="yt-detail-panel">
+            <div class="yt-detail-hd">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="yt-detail-dot" id="yt-detail-dot"></div>
+                <div class="yt-detail-title" id="yt-detail-title"></div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button class="yt-ghost-btn" id="yt-add-to-pillar-btn">＋ 영상 추가</button>
+                <button class="yt-ghost-btn" onclick="ytCloseDetail()">닫기</button>
+              </div>
+            </div>
+            <div class="yt-filter-row" id="yt-filter-row"></div>
+            <div class="yt-video-list" id="yt-detail-video-list"></div>
+          </div>
+
+          <div class="yt-bottom-grid">
+            <div class="yt-panel">
+              <div class="yt-section-hd" style="margin-bottom:12px"><span class="yt-section-title">업로드 로드맵</span></div>
+              <div id="yt-timeline-list"></div>
+            </div>
+            <div class="yt-panel">
+              <div class="yt-section-hd" style="margin-bottom:14px"><span class="yt-section-title">필러별 진행률</span></div>
+              <div id="yt-progress-list"></div>
+            </div>
+          </div>
+
+          <div class="yt-panel" style="margin-bottom:0">
+            <div class="yt-section-hd">
+              <span class="yt-section-title">채널 메모</span>
+              <button class="yt-ghost-btn" onclick="ytSaveNotes()">저장</button>
+            </div>
+            <textarea class="yt-textarea" id="yt-channel-notes" placeholder="채널 전략, 아이디어, 메모 등 자유롭게 기록하세요..."></textarea>
+          </div>
+        </div>
+
+        <!-- 전체 영상 페이지 -->
+        <div class="yt-page" id="ytpage-allvideos">
+          <div class="yt-search-row">
+            <input class="yt-search-input" id="yt-all-search" placeholder="제목으로 검색..." oninput="ytRenderAllVideos()">
+            <select class="yt-select" id="yt-all-filter-pillar" onchange="ytRenderAllVideos()">
+              <option value="">전체 필러</option>
+            </select>
+            <select class="yt-select" id="yt-all-filter-status" onchange="ytRenderAllVideos()">
+              <option value="">전체 상태</option>
+              <option value="idea">아이디어</option>
+              <option value="ready">촬영 준비</option>
+              <option value="filmed">촬영 완료</option>
+              <option value="done">업로드 완료</option>
+            </select>
+          </div>
+          <div class="yt-video-list" id="yt-all-video-list"></div>
+        </div>
+
+        <!-- 아이디어 보드 페이지 -->
+        <div class="yt-page" id="ytpage-ideas">
+          <div class="yt-ideas-grid" id="yt-ideas-grid"></div>
+          <button class="yt-add-idea-btn" id="yt-add-idea-btn">＋ 아이디어 추가</button>
+        </div>
+
+        <!-- 채널 전략 페이지 -->
+        <div class="yt-page" id="ytpage-strategy">
+          <div class="yt-strategy-card">
+            <div class="yt-strategy-q">채널 핵심 가치</div>
+            <div class="yt-strategy-a">"혼자서도 은혜로운 예배를 — 신학과 실전을 함께"<br>소규모 교회 예배 인도자, 혼자 또는 소편성으로 예배를 이끄는 분들을 위한 채널입니다.</div>
+          </div>
+          <div class="yt-strategy-card">
+            <div class="yt-strategy-q">콘텐츠 6대 필러 운영 원칙</div>
+            <div class="yt-strategy-a">
+              <ul>
+                <li><b>예배 신학</b> — 깊이 있는 신학 콘텐츠로 채널 신뢰도 확보. 월 1–2편 권장.</li>
+                <li><b>말씀 묵상</b> — 꾸준한 업로드로 구독자 유지. 주 1편 목표.</li>
+                <li><b>기타로 예배 인도</b> — 실용 튜토리얼로 검색 유입 극대화. 시리즈 구성 권장.</li>
+                <li><b>장비 리뷰</b> — SEO 효과 높음. 구체적인 제품명과 비교 영상 병행.</li>
+                <li><b>Logic Pro · MainStage</b> — 니치 타깃 공략. 플레이리스트로 묶어 시청 시간 확보.</li>
+                <li><b>예배 현장 A to Z</b> — 실전 정보로 커뮤니티 형성. Q&A 연계 가능.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="yt-strategy-card">
+            <div class="yt-strategy-q">업로드 리듬 권장안</div>
+            <div class="yt-strategy-a">
+              <ul>
+                <li>초기 (0–3개월): 주 1편 — 기타 튜토리얼 + 장비 리뷰 위주로 검색 유입 확보</li>
+                <li>성장기 (3–6개월): 주 1–2편 — 말씀 묵상 정기 시리즈 추가</li>
+                <li>안정기 (6개월+): 주 2편 — 6개 필러 균형 있게 순환</li>
+                <li>번아웃 방지: 4주치 영상을 미리 촬영 후 예약 업로드 추천</li>
+              </ul>
+            </div>
+          </div>
+          <div class="yt-panel">
+            <div class="yt-section-hd">
+              <span class="yt-section-title">전략 메모</span>
+              <button class="yt-ghost-btn" onclick="ytSaveStrategyNotes()">저장</button>
+            </div>
+            <textarea class="yt-textarea" id="yt-strategy-notes" placeholder="채널 전략, 방향성, 장기 목표 등을 자유롭게 기록하세요..."></textarea>
+          </div>
+        </div>
+
+      </div><!-- /yt-body -->
+    </div><!-- /yt-view -->
+
   </div><!-- /main -->
 </div><!-- /app -->
 
@@ -558,6 +906,65 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
         <button class="modal-cancel" id="event-cancel">취소</button>
         <button class="modal-save" id="event-save">저장</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- 유튜브 영상 추가/편집 모달 -->
+<div class="yt-modal-overlay" id="yt-video-modal">
+  <div class="yt-modal-box">
+    <div class="yt-modal-title" id="yt-video-modal-title">새 영상 추가</div>
+    <div class="yt-modal-field">
+      <div class="yt-modal-label">영상 제목 *</div>
+      <input class="yt-modal-input" id="yt-v-title" placeholder="예: 코드 진행 없이도 예배를 인도하는 법">
+    </div>
+    <div class="yt-modal-field">
+      <div class="yt-modal-label">콘텐츠 필러 *</div>
+      <select class="yt-modal-select" id="yt-v-pillar"></select>
+    </div>
+    <div class="yt-modal-field">
+      <div class="yt-modal-label">제작 상태</div>
+      <select class="yt-modal-select" id="yt-v-status">
+        <option value="idea">아이디어</option>
+        <option value="ready">촬영 준비</option>
+        <option value="filmed">촬영 완료</option>
+        <option value="done">업로드 완료</option>
+      </select>
+    </div>
+    <div class="yt-modal-field">
+      <div class="yt-modal-label">업로드 목표 주차</div>
+      <input class="yt-modal-input" id="yt-v-week" placeholder="예: 1주차, 5월 2주차">
+    </div>
+    <div class="yt-modal-field">
+      <div class="yt-modal-label">메모</div>
+      <textarea class="yt-modal-textarea" id="yt-v-note" placeholder="핵심 내용, 참고 자료 등..."></textarea>
+    </div>
+    <div class="yt-modal-btns">
+      <button class="yt-modal-cancel" id="yt-video-cancel">취소</button>
+      <button class="yt-modal-confirm" id="yt-video-confirm">추가</button>
+    </div>
+  </div>
+</div>
+
+<!-- 유튜브 아이디어 추가 모달 -->
+<div class="yt-modal-overlay" id="yt-idea-modal">
+  <div class="yt-modal-box">
+    <div class="yt-modal-title">아이디어 추가</div>
+    <div class="yt-modal-field">
+      <div class="yt-modal-label">아이디어 제목 *</div>
+      <input class="yt-modal-input" id="yt-i-title" placeholder="영상 주제나 핵심 아이디어">
+    </div>
+    <div class="yt-modal-field">
+      <div class="yt-modal-label">관련 필러</div>
+      <select class="yt-modal-select" id="yt-i-pillar"></select>
+    </div>
+    <div class="yt-modal-field">
+      <div class="yt-modal-label">메모</div>
+      <textarea class="yt-modal-textarea" id="yt-i-note" placeholder="구체적인 내용, 레퍼런스 등..."></textarea>
+    </div>
+    <div class="yt-modal-btns">
+      <button class="yt-modal-cancel" id="yt-idea-cancel">취소</button>
+      <button class="yt-modal-confirm" id="yt-idea-confirm">추가</button>
     </div>
   </div>
 </div>
@@ -729,6 +1136,7 @@ navTabs.forEach(tab => {
     if (target === 'card-view') { renderCardView(); }
     if (target === 'kanban-view') { renderKanban(); }
     if (target === 'cal-view') { renderCalFilters(); renderCalHeader(); renderCalGrid(); }
+    if (target === 'yt-view') { ytInit(); }
   });
 });
 
@@ -754,6 +1162,12 @@ function getTodayTasks() {
 }
 
 function getFieldProgress(field) {
+  // 유튜브 분야는 채널 보드 데이터 기준으로 진행률 계산
+  if (field === 'yt' && state.ytChannel && state.ytChannel.videos.length > 0) {
+    const total = state.ytChannel.videos.length;
+    const done  = state.ytChannel.videos.filter(v => v.status === 'done').length;
+    return { total, done, pct: total === 0 ? 0 : Math.round(done / total * 100) };
+  }
   const nodes = state.nodes.filter(n => n.field === field);
   let total = 0, done = 0;
   nodes.forEach(n => {
@@ -2402,6 +2816,386 @@ document.getElementById('event-delete').addEventListener('click', () => {
     saveData(); closeEventModal(); renderCalGrid(); showToast('일정이 삭제되었습니다');
   }
 });
+
+/* ═══════════════════════════════════════════════
+   YOUTUBE CHANNEL BOARD
+   ═══════════════════════════════════════════════ */
+const YT_PILLARS = [
+  { id:0, name:'예배 신학',          eng:'All about Worship',  desc:'예배에 대한 신학과 성경적 기초', dot:'#7B9FE0' },
+  { id:1, name:'말씀 묵상',          eng:"God's Word",         desc:'성경 말씀 묵상과 일상 적용',     dot:'#3CBFA0' },
+  { id:2, name:'기타로 예배 인도',   eng:'Guitar Worship',     desc:'기타·이펙트·주변 기기 활용법',   dot:'#E07560' },
+  { id:3, name:'장비 리뷰',          eng:'Gear Review',        desc:'예배 장비 직접 사용 리뷰',       dot:'#D4A84B' },
+  { id:4, name:'Logic Pro·MainStage',eng:'DAW & Live',         desc:'메인스테이지·로직 예배 활용',    dot:'#60AADC' },
+  { id:5, name:'예배 현장 A to Z',   eng:'Worship Live',       desc:'예배 현장 프로그램·실전 정보',   dot:'#C068C0' }
+];
+const YT_STATUS_LABEL = { idea:'아이디어', ready:'촬영 준비', filmed:'촬영 완료', done:'업로드 완료' };
+const YT_STATUS_CLASS = { idea:'yt-s-idea', ready:'yt-s-ready', filmed:'yt-s-filmed', done:'yt-s-done' };
+const YT_STATUS_ORDER = ['idea','ready','filmed','done'];
+
+let ytActivePillar = null;
+let ytDetailFilter = 'all';
+let ytEditingVideoId = null;
+let ytCurrentPage = 'dashboard';
+
+/* ── 데이터 로드/저장 — Myverse state에 통합 ── */
+function ytGetData() {
+  if (!state.ytChannel) state.ytChannel = { videos:[], ideas:[], notes:'', strategyNotes:'' };
+  return state.ytChannel;
+}
+function ytSave() {
+  if (!state.ytChannel) state.ytChannel = { videos:[], ideas:[], notes:'', strategyNotes:'' };
+  saveData(); // Myverse의 saveData 호출 → localStorage 통합 저장
+  // 홈 카드 유튜브 진행률 동기화
+  renderCardView();
+}
+
+/* ── 서브탭 전환 ── */
+document.querySelectorAll('.yt-subtab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const page = btn.dataset.ytpage;
+    document.querySelectorAll('.yt-subtab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.yt-page').forEach(p => p.classList.remove('active'));
+    document.getElementById('ytpage-' + page).classList.add('active');
+    ytCurrentPage = page;
+    if (page === 'allvideos') { ytPopulateAllFilters(); ytRenderAllVideos(); }
+    if (page === 'ideas') ytRenderIdeas();
+    if (page === 'strategy') {
+      const el = document.getElementById('yt-strategy-notes');
+      if (el) el.value = ytGetData().strategyNotes || '';
+    }
+  });
+});
+
+/* ── 메인 탭 → yt-view 진입 시 렌더 ── */
+function ytInit() {
+  ytRenderAll();
+  const notesEl = document.getElementById('yt-channel-notes');
+  if (notesEl && !notesEl.dataset.loaded) { notesEl.value = ytGetData().notes || ''; notesEl.dataset.loaded = '1'; }
+}
+
+function ytRenderAll() {
+  ytRenderStats();
+  ytRenderPillarsGrid();
+  ytRenderDetail();
+  ytRenderTimeline();
+  ytRenderProgress();
+}
+
+/* ── Stats ── */
+function ytRenderStats() {
+  const D = ytGetData();
+  const total = D.videos.length;
+  const done  = D.videos.filter(v => v.status === 'done').length;
+  const filmed= D.videos.filter(v => v.status === 'filmed').length;
+  const idea  = D.videos.filter(v => v.status === 'idea').length;
+  document.getElementById('yt-stats-row').innerHTML = `
+    <div class="yt-stat-card"><div class="yt-stat-label">전체 계획</div><div class="yt-stat-val">${total}</div><div class="yt-stat-sub">등록된 영상</div></div>
+    <div class="yt-stat-card"><div class="yt-stat-label">업로드 완료</div><div class="yt-stat-val">${done}</div><div class="yt-stat-sub">${total?Math.round(done/total*100):0}% 달성</div></div>
+    <div class="yt-stat-card"><div class="yt-stat-label">촬영 완료</div><div class="yt-stat-val">${filmed}</div><div class="yt-stat-sub">편집 대기</div></div>
+    <div class="yt-stat-card"><div class="yt-stat-label">아이디어</div><div class="yt-stat-val">${idea}</div><div class="yt-stat-sub">기획 필요</div></div>
+  `;
+  document.getElementById('yt-badge-total').textContent = total;
+  document.getElementById('yt-badge-ideas').textContent = D.ideas.length;
+}
+
+/* ── Pillars grid ── */
+function ytRenderPillarsGrid() {
+  const D = ytGetData();
+  const el = document.getElementById('yt-pillars-grid');
+  el.innerHTML = YT_PILLARS.map(p => {
+    const pvids = D.videos.filter(v => v.pillar === p.id);
+    const done  = pvids.filter(v => v.status === 'done').length;
+    const pct   = pvids.length ? Math.round(done / pvids.length * 100) : 0;
+    const isAct = ytActivePillar === p.id;
+    return `<div class="yt-pillar-card${isAct?' active':''}" onclick="ytSelectPillar(${p.id})"
+        style="${isAct?'border-color:'+p.dot+';':''}">
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:${p.dot};border-radius:14px 14px 0 0;"></div>
+      <div class="yt-pc-top" style="margin-top:6px;">
+        <span class="yt-pc-badge" style="background:${p.dot}22;color:${p.dot};">P${p.id+1}</span>
+        <span class="yt-pc-count">${pvids.length}개</span>
+      </div>
+      <div class="yt-pc-name">${p.name}</div>
+      <div class="yt-pc-eng">${p.eng}</div>
+      <div class="yt-pc-desc">${p.desc}</div>
+      <div class="yt-pc-bar-bg"><div class="yt-pc-bar" style="width:${pct}%;background:${p.dot};"></div></div>
+      <div class="yt-pc-bar-nums">
+        <span class="yt-pc-bar-txt">${done}/${pvids.length} 완료</span>
+        <span class="yt-pc-bar-txt">${pct}%</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── Detail panel ── */
+function ytSelectPillar(id) {
+  ytActivePillar = ytActivePillar === id ? null : id;
+  ytDetailFilter = 'all';
+  ytRenderAll();
+  if (ytActivePillar !== null) {
+    setTimeout(() => document.getElementById('yt-detail-panel').scrollIntoView({ behavior:'smooth', block:'nearest' }), 100);
+  }
+}
+function ytCloseDetail() { ytActivePillar = null; ytRenderAll(); }
+
+function ytRenderDetail() {
+  const panel = document.getElementById('yt-detail-panel');
+  if (ytActivePillar === null) { panel.classList.remove('visible'); return; }
+  panel.classList.add('visible');
+  const p = YT_PILLARS[ytActivePillar];
+  const D = ytGetData();
+  document.getElementById('yt-detail-dot').style.background = p.dot;
+  document.getElementById('yt-detail-title').textContent = `P${p.id+1} · ${p.name} — ${p.eng}`;
+
+  const filters = ['all','idea','ready','filmed','done'];
+  const flabels = { all:'전체', idea:'아이디어', ready:'촬영 준비', filmed:'촬영 완료', done:'업로드 완료' };
+  document.getElementById('yt-filter-row').innerHTML = filters.map(f =>
+    `<button class="yt-filter-btn${ytDetailFilter===f?' active':''}" onclick="ytSetFilter('${f}')">${flabels[f]}</button>`
+  ).join('');
+
+  let pvids = D.videos.filter(v => v.pillar === ytActivePillar);
+  if (ytDetailFilter !== 'all') pvids = pvids.filter(v => v.status === ytDetailFilter);
+
+  const el = document.getElementById('yt-detail-video-list');
+  if (!pvids.length) { el.innerHTML = `<div class="yt-empty">영상이 없어요. 위 버튼으로 추가해보세요.</div>`; return; }
+  el.innerHTML = pvids.map((v, i) => `
+    <div class="yt-video-item">
+      <div class="yt-vi-seq">${String(i+1).padStart(2,'0')}</div>
+      <div>
+        <div class="yt-vi-title">${v.title}</div>
+        <div class="yt-vi-meta">
+          ${v.week ? `<span>${v.week}</span>` : ''}
+          ${v.note ? `<span>${v.note.slice(0,50)}${v.note.length>50?'…':''}</span>` : ''}
+        </div>
+      </div>
+      <span class="yt-status-pill ${YT_STATUS_CLASS[v.status]}" onclick="ytCycleStatus(${v._id})" title="클릭하여 상태 변경">
+        ${YT_STATUS_LABEL[v.status]}
+      </span>
+      <div class="yt-vi-actions">
+        <button class="yt-tiny-btn" onclick="ytOpenEditModal(${v._id})">편집</button>
+        <button class="yt-tiny-btn del" onclick="ytDeleteVideo(${v._id})">삭제</button>
+      </div>
+    </div>`).join('');
+}
+function ytSetFilter(f) { ytDetailFilter = f; ytRenderDetail(); }
+
+/* ── Timeline ── */
+function ytRenderTimeline() {
+  const D = ytGetData();
+  const el = document.getElementById('yt-timeline-list');
+  const withWeek = D.videos.filter(v => v.week).sort((a,b) => a.week.localeCompare(b.week));
+  if (!withWeek.length) { el.innerHTML = `<div style="font-size:12px;color:var(--text3);">영상에 주차를 입력하면 로드맵이 표시됩니다.</div>`; return; }
+  el.innerHTML = withWeek.slice(0, 7).map(v => {
+    const p = YT_PILLARS[v.pillar];
+    return `<div class="yt-tl-item">
+      <div class="yt-tl-dot" style="background:${p.dot};"></div>
+      <div style="flex:1;">
+        <div class="yt-tl-week">${v.week}</div>
+        <div class="yt-tl-vtitle">${v.title}</div>
+        <span class="yt-tl-badge" style="background:${p.dot}22;color:${p.dot};">${p.name}</span>
+      </div>
+      <span class="yt-status-pill ${YT_STATUS_CLASS[v.status]}" style="font-size:9px;">${YT_STATUS_LABEL[v.status]}</span>
+    </div>`;
+  }).join('');
+}
+
+/* ── Progress ── */
+function ytRenderProgress() {
+  const D = ytGetData();
+  document.getElementById('yt-progress-list').innerHTML = YT_PILLARS.map(p => {
+    const pvids = D.videos.filter(v => v.pillar === p.id);
+    const done  = pvids.filter(v => v.status === 'done').length;
+    const pct   = pvids.length ? Math.round(done / pvids.length * 100) : 0;
+    return `<div class="yt-prog-row">
+      <div class="yt-prog-lbl">
+        <span class="yt-prog-name">${p.name}</span>
+        <span class="yt-prog-nums">${done}/${pvids.length} · ${pct}%</span>
+      </div>
+      <div class="yt-prog-bg"><div class="yt-prog-fill" style="width:${pct}%;background:${p.dot};"></div></div>
+    </div>`;
+  }).join('');
+}
+
+/* ── All videos ── */
+function ytPopulateAllFilters() {
+  const sel = document.getElementById('yt-all-filter-pillar');
+  const cur = sel.value;
+  sel.innerHTML = `<option value="">전체 필러</option>` + YT_PILLARS.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  sel.value = cur;
+}
+function ytRenderAllVideos() {
+  const D = ytGetData();
+  const q  = (document.getElementById('yt-all-search').value || '').toLowerCase();
+  const pF = document.getElementById('yt-all-filter-pillar').value;
+  const sF = document.getElementById('yt-all-filter-status').value;
+  let vids = D.videos.filter(v => {
+    if (q && !v.title.toLowerCase().includes(q)) return false;
+    if (pF !== '' && v.pillar !== parseInt(pF)) return false;
+    if (sF && v.status !== sF) return false;
+    return true;
+  });
+  const el = document.getElementById('yt-all-video-list');
+  if (!vids.length) { el.innerHTML = `<div class="yt-empty">조건에 맞는 영상이 없어요.</div>`; return; }
+  el.innerHTML = vids.map((v, i) => {
+    const p = YT_PILLARS[v.pillar];
+    return `<div class="yt-video-item">
+      <div class="yt-vi-seq">${String(i+1).padStart(2,'0')}</div>
+      <div>
+        <div class="yt-vi-title">${v.title}</div>
+        <div class="yt-vi-meta">
+          <span style="font-size:10px;padding:1px 6px;border-radius:8px;background:${p.dot}22;color:${p.dot};">${p.name}</span>
+          ${v.week ? `<span>${v.week}</span>` : ''}
+          ${v.note ? `<span>${v.note.slice(0,40)}…</span>` : ''}
+        </div>
+      </div>
+      <span class="yt-status-pill ${YT_STATUS_CLASS[v.status]}" onclick="ytCycleStatus(${v._id})" title="클릭하여 상태 변경">
+        ${YT_STATUS_LABEL[v.status]}
+      </span>
+      <div class="yt-vi-actions">
+        <button class="yt-tiny-btn" onclick="ytOpenEditModal(${v._id})">편집</button>
+        <button class="yt-tiny-btn del" onclick="ytDeleteVideo(${v._id})">삭제</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── Ideas ── */
+function ytRenderIdeas() {
+  const D = ytGetData();
+  const el = document.getElementById('yt-ideas-grid');
+  if (!D.ideas.length) { el.innerHTML = `<div class="yt-empty" style="grid-column:1/-1;">아이디어를 추가해보세요!</div>`; return; }
+  el.innerHTML = D.ideas.map(idea => {
+    const p = YT_PILLARS[idea.pillar || 0];
+    return `<div class="yt-idea-card">
+      <div class="yt-idea-hd">
+        <div class="yt-idea-title">${idea.title}</div>
+        <button class="yt-tiny-btn del" onclick="ytDeleteIdea(${idea._id})">삭제</button>
+      </div>
+      <span style="font-size:10px;padding:2px 7px;border-radius:10px;background:${p.dot}22;color:${p.dot};">${p.name}</span>
+      ${idea.note ? `<div class="yt-idea-note">${idea.note}</div>` : ''}
+      <div class="yt-idea-date">${idea.date || ''}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ── Video CRUD ── */
+let _ytUid = Date.now();
+function ytUid() { return ++_ytUid; }
+
+function ytPopulatePillarSelect(selId) {
+  document.getElementById(selId).innerHTML = YT_PILLARS.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+}
+
+function ytOpenAddModal(pillarId) {
+  ytEditingVideoId = null;
+  document.getElementById('yt-video-modal-title').textContent = '새 영상 추가';
+  document.getElementById('yt-video-confirm').textContent = '추가';
+  ytPopulatePillarSelect('yt-v-pillar');
+  document.getElementById('yt-v-title').value = '';
+  document.getElementById('yt-v-pillar').value = (pillarId !== null && pillarId !== undefined) ? pillarId : 0;
+  document.getElementById('yt-v-status').value = 'idea';
+  document.getElementById('yt-v-week').value = '';
+  document.getElementById('yt-v-note').value = '';
+  document.getElementById('yt-video-modal').classList.add('open');
+  setTimeout(() => document.getElementById('yt-v-title').focus(), 60);
+}
+function ytOpenEditModal(id) {
+  const D = ytGetData();
+  const v = D.videos.find(v => v._id === id);
+  if (!v) return;
+  ytEditingVideoId = id;
+  document.getElementById('yt-video-modal-title').textContent = '영상 편집';
+  document.getElementById('yt-video-confirm').textContent = '저장';
+  ytPopulatePillarSelect('yt-v-pillar');
+  document.getElementById('yt-v-title').value = v.title;
+  document.getElementById('yt-v-pillar').value = v.pillar;
+  document.getElementById('yt-v-status').value = v.status;
+  document.getElementById('yt-v-week').value = v.week || '';
+  document.getElementById('yt-v-note').value = v.note || '';
+  document.getElementById('yt-video-modal').classList.add('open');
+  setTimeout(() => document.getElementById('yt-v-title').focus(), 60);
+}
+function ytCloseVideoModal() { document.getElementById('yt-video-modal').classList.remove('open'); }
+
+document.getElementById('yt-video-cancel').addEventListener('click', ytCloseVideoModal);
+document.getElementById('yt-video-modal').addEventListener('click', e => { if (e.target === e.currentTarget) ytCloseVideoModal(); });
+document.getElementById('yt-video-confirm').addEventListener('click', () => {
+  const title = document.getElementById('yt-v-title').value.trim();
+  if (!title) { showToast('제목을 입력해주세요'); return; }
+  const D = ytGetData();
+  if (ytEditingVideoId !== null) {
+    const v = D.videos.find(v => v._id === ytEditingVideoId);
+    if (v) { v.title = title; v.pillar = parseInt(document.getElementById('yt-v-pillar').value); v.status = document.getElementById('yt-v-status').value; v.week = document.getElementById('yt-v-week').value.trim(); v.note = document.getElementById('yt-v-note').value.trim(); }
+    showToast('영상이 수정되었습니다');
+  } else {
+    D.videos.push({ _id: ytUid(), title, pillar: parseInt(document.getElementById('yt-v-pillar').value), status: document.getElementById('yt-v-status').value, week: document.getElementById('yt-v-week').value.trim(), note: document.getElementById('yt-v-note').value.trim() });
+    showToast('영상이 추가되었습니다');
+  }
+  ytCloseVideoModal(); ytSave(); ytRenderAll();
+  if (ytCurrentPage === 'allvideos') ytRenderAllVideos();
+});
+
+function ytCycleStatus(id) {
+  const D = ytGetData();
+  const v = D.videos.find(v => v._id === id);
+  if (!v) return;
+  v.status = YT_STATUS_ORDER[(YT_STATUS_ORDER.indexOf(v.status) + 1) % YT_STATUS_ORDER.length];
+  ytSave(); ytRenderAll();
+  if (ytCurrentPage === 'allvideos') ytRenderAllVideos();
+}
+function ytDeleteVideo(id) {
+  if (!confirm('이 영상을 삭제할까요?')) return;
+  const D = ytGetData();
+  D.videos = D.videos.filter(v => v._id !== id);
+  ytSave(); ytRenderAll();
+  if (ytCurrentPage === 'allvideos') ytRenderAllVideos();
+  showToast('삭제되었습니다');
+}
+
+/* ── Ideas CRUD ── */
+document.getElementById('yt-add-idea-btn').addEventListener('click', () => {
+  ytPopulatePillarSelect('yt-i-pillar');
+  document.getElementById('yt-i-title').value = '';
+  document.getElementById('yt-i-note').value = '';
+  document.getElementById('yt-idea-modal').classList.add('open');
+  setTimeout(() => document.getElementById('yt-i-title').focus(), 60);
+});
+document.getElementById('yt-idea-cancel').addEventListener('click', () => document.getElementById('yt-idea-modal').classList.remove('open'));
+document.getElementById('yt-idea-modal').addEventListener('click', e => { if (e.target === e.currentTarget) e.currentTarget.classList.remove('open'); });
+document.getElementById('yt-idea-confirm').addEventListener('click', () => {
+  const title = document.getElementById('yt-i-title').value.trim();
+  if (!title) { showToast('제목을 입력해주세요'); return; }
+  const D = ytGetData();
+  D.ideas.push({ _id: ytUid(), title, pillar: parseInt(document.getElementById('yt-i-pillar').value), note: document.getElementById('yt-i-note').value.trim(), date: new Date().toLocaleDateString('ko-KR') });
+  document.getElementById('yt-idea-modal').classList.remove('open');
+  ytSave(); ytRenderIdeas();
+  document.getElementById('yt-badge-ideas').textContent = D.ideas.length;
+  showToast('아이디어가 추가되었습니다');
+});
+function ytDeleteIdea(id) {
+  if (!confirm('이 아이디어를 삭제할까요?')) return;
+  const D = ytGetData();
+  D.ideas = D.ideas.filter(i => i._id !== id);
+  ytSave(); ytRenderIdeas();
+  document.getElementById('yt-badge-ideas').textContent = D.ideas.length;
+}
+
+/* ── Notes ── */
+function ytSaveNotes() {
+  ytGetData().notes = document.getElementById('yt-channel-notes').value;
+  ytSave(); showToast('메모가 저장되었습니다');
+}
+function ytSaveStrategyNotes() {
+  ytGetData().strategyNotes = document.getElementById('yt-strategy-notes').value;
+  ytSave(); showToast('메모가 저장되었습니다');
+}
+
+/* ── 상단 버튼 이벤트 ── */
+document.getElementById('yt-add-video-btn').addEventListener('click', () => ytOpenAddModal(ytActivePillar));
+document.getElementById('yt-add-to-pillar-btn').addEventListener('click', () => ytOpenAddModal(ytActivePillar));
+
+/* ── loadData 마이그레이션: ytChannel 필드 보장 ── */
+if (!state.ytChannel) state.ytChannel = { videos:[], ideas:[], notes:'', strategyNotes:'' };
 
 /* ─── INIT ─── */
 syncFields();
