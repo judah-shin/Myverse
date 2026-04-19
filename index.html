@@ -80,8 +80,18 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   display: flex; align-items: center; justify-content: center;
   opacity: 0.45; transition: all .15s; z-index: 2;
 }
-.field-card:hover .field-card-del { opacity: 1; }
+.field-card-edit {
+  position: absolute; top: 8px; right: 36px;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
+  color: var(--text3); font-size: 11px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0.45; transition: all .15s; z-index: 2;
+}
+.field-card:hover .field-card-del,
+.field-card:hover .field-card-edit { opacity: 1; }
 .field-card-del:hover { background: rgba(220,70,70,0.6); color: #fff; border-color: transparent; transform: scale(1.1); }
+.field-card-edit:hover { background: var(--bg3); color: var(--accent2); border-color: var(--accent); transform: scale(1.1); }
 .field-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
 .field-card.work::before   { background: var(--c-work); }
 .field-card.yt::before     { background: var(--c-yt); }
@@ -279,6 +289,11 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .cal-day.today .day-num { background: var(--accent); color: white; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
 .day-num { font-size: 12px; color: var(--text2); margin-bottom: 4px; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
 .cal-event { font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.cal-range-bar {
+  font-size: 9px; padding: 2px 4px; margin-bottom: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  min-height: 16px; display: flex; align-items: center;
+}
 .cal-more { font-size: 10px; color: var(--text3); padding: 1px 4px; }
 
 /* ─── Event Detail Modal ─── */
@@ -598,7 +613,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
       <button class="nav-tab" data-view="graph-view">그래프</button>
       <button class="nav-tab" data-view="kanban-view">칸반</button>
       <button class="nav-tab" data-view="cal-view">달력</button>
-      <button class="nav-tab" data-view="yt-view" style="color:var(--c-yt)">🎬 채널</button>
+      <button class="nav-tab" data-view="yt-view" style="color:var(--c-yt)">🎬 유튜브</button>
     </nav>
     <button class="capture-btn" id="open-capture-btn">
       <kbd>⌘K</kbd> 빠른 캡처
@@ -836,10 +851,21 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 
 <!-- 기간 설정 미니 모달 -->
 <div class="event-modal-overlay" id="due-date-overlay">
-  <div class="event-modal" style="width:320px">
+  <div class="event-modal" style="width:340px">
     <h3 id="due-date-title">기간 설정</h3>
     <div class="event-form">
-      <input type="date" id="due-date-input">
+      <div style="display:flex;gap:8px;align-items:center">
+        <div style="flex:1">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">시작일 (선택)</div>
+          <input type="date" id="due-start-input" style="width:100%">
+        </div>
+        <div style="color:var(--text3);margin-top:16px;font-size:12px">→</div>
+        <div style="flex:1">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">완료일</div>
+          <input type="date" id="due-date-input" style="width:100%">
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--text3)">· 시작일 없이 완료일만 입력하면 달력에 점으로 표시됩니다<br>· 두 날짜 모두 입력하면 달력에 기간 바로 표시됩니다</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         <button class="due-preset" data-days="3">3일 후</button>
         <button class="due-preset" data-days="7">1주 후</button>
@@ -885,8 +911,37 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   </div>
 </div>
 
-<!-- 이벤트/칸반 카드 편집 모달 -->
+<!-- 분야 편집 모달 -->
+<div class="event-modal-overlay" id="edit-field-overlay">
+  <div class="event-modal" style="width:420px">
+    <h3>분야 편집</h3>
+    <div class="event-form">
+      <input type="text" id="edit-field-name-input" placeholder="분야 이름">
+      <div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:.06em">아이콘 선택</div>
+        <div id="edit-icon-picker" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:.06em">컬러 선택</div>
+        <div id="edit-color-picker" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border2)">
+        <div id="edit-field-preview-icon" style="font-size:22px">🌟</div>
+        <div>
+          <div id="edit-field-preview-name" style="font-size:14px;font-weight:600;color:var(--text)">분야 이름</div>
+          <div style="font-size:11px;color:var(--text3)">미리보기</div>
+        </div>
+        <div id="edit-field-preview-dot" style="width:8px;height:8px;border-radius:50%;margin-left:auto;background:#A8C4FF"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="modal-cancel" id="edit-field-cancel">취소</button>
+        <button class="modal-save" id="edit-field-save">저장</button>
+      </div>
+    </div>
+  </div>
+</div>
 
+<!-- 이벤트/칸반 카드 편집 모달 -->
 <div class="event-modal-overlay" id="event-modal-overlay">
   <div class="event-modal">
     <h3 id="event-modal-title">일정 추가</h3>
@@ -1201,6 +1256,7 @@ function renderCardView() {
 
     el.innerHTML = `
       ${colorBar}
+      <button class="field-card-edit" title="분야 편집">✎</button>
       <button class="field-card-del" title="분야 삭제">✕</button>
       <div class="card-icon">${f.icon}</div>
       <div class="card-title">${f.label}</div>
@@ -1212,7 +1268,14 @@ function renderCardView() {
     // 카드 클릭 → 패널 열기
     el.addEventListener('click', e => {
       if (e.target.classList.contains('field-card-del')) return;
+      if (e.target.classList.contains('field-card-edit')) return;
       openNodePanel(key);
+    });
+
+    // 편집 버튼
+    el.querySelector('.field-card-edit').addEventListener('click', e => {
+      e.stopPropagation();
+      openEditFieldModal(key, f);
     });
 
     // 삭제 버튼
@@ -1962,6 +2025,7 @@ function openDueDatePicker(target, type, cb) {
   _dueTarget = target; _dueCb = cb;
   const titles = { project: '프로젝트 기간 설정', todo: '할 일 기간 설정', plan: '세부 계획 기간 설정' };
   document.getElementById('due-date-title').textContent = titles[type] || '기간 설정';
+  document.getElementById('due-start-input').value = target.startDate || '';
   document.getElementById('due-date-input').value = target.dueDate || '';
   document.getElementById('due-date-overlay').classList.add('open');
 }
@@ -1977,6 +2041,7 @@ document.querySelectorAll('.due-preset').forEach(btn => {
   btn.addEventListener('click', () => {
     const days = parseInt(btn.dataset.days);
     if (days === 0) {
+      document.getElementById('due-start-input').value = '';
       document.getElementById('due-date-input').value = '';
     } else {
       const d = new Date(); d.setDate(d.getDate() + days);
@@ -1987,11 +2052,15 @@ document.querySelectorAll('.due-preset').forEach(btn => {
 
 document.getElementById('due-date-save').addEventListener('click', () => {
   if (!_dueTarget) return;
-  const val = document.getElementById('due-date-input').value;
-  _dueTarget.dueDate = val || undefined;
+  const startVal = document.getElementById('due-start-input').value;
+  const endVal   = document.getElementById('due-date-input').value;
+  _dueTarget.startDate = startVal || undefined;
+  _dueTarget.dueDate   = endVal   || undefined;
   document.getElementById('due-date-overlay').classList.remove('open');
   if (_dueCb) _dueCb();
-  showToast(val ? `기간이 ${val}로 설정되었습니다` : '기간이 제거되었습니다');
+  if (!startVal && !endVal) showToast('기간이 제거되었습니다');
+  else if (startVal && endVal) showToast(`${startVal} ~ ${endVal} 기간이 설정되었습니다`);
+  else showToast(`완료일 ${endVal}이 설정되었습니다`);
 });
 
 /* ── 달력에도 프로젝트 기간 표시 ── */
@@ -1999,13 +2068,24 @@ function getProjectEvents() {
   const evs = [];
   state.nodes.forEach(node => {
     if (!node.field) return;
-    const f = FIELDS[node.field];
     (node.projects || []).forEach(proj => {
-      if (proj.dueDate) evs.push({ id: 'proj_' + proj.id, title: proj.title, field: node.field, date: proj.dueDate, note: '프로젝트 마감', _readOnly: true });
+      if (proj.dueDate) evs.push({
+        id: 'proj_' + proj.id, title: proj.title, field: node.field,
+        date: proj.dueDate, startDate: proj.startDate || null,
+        note: '프로젝트 마감', _readOnly: true, _isRange: !!(proj.startDate && proj.dueDate)
+      });
       (proj.todos || []).forEach(todo => {
-        if (todo.dueDate) evs.push({ id: 'todo_' + todo.id, title: todo.text, field: node.field, date: todo.dueDate, note: '할 일 마감', _readOnly: true });
+        if (todo.dueDate) evs.push({
+          id: 'todo_' + todo.id, title: todo.text, field: node.field,
+          date: todo.dueDate, startDate: todo.startDate || null,
+          note: '할 일 마감', _readOnly: true, _isRange: !!(todo.startDate && todo.dueDate)
+        });
         (todo.plans || []).forEach(plan => {
-          if (plan.dueDate) evs.push({ id: 'plan_' + plan.id, title: plan.text, field: node.field, date: plan.dueDate, note: '세부 계획 마감', _readOnly: true });
+          if (plan.dueDate) evs.push({
+            id: 'plan_' + plan.id, title: plan.text, field: node.field,
+            date: plan.dueDate, startDate: plan.startDate || null,
+            note: '세부 계획 마감', _readOnly: true, _isRange: !!(plan.startDate && plan.dueDate)
+          });
         });
       });
     });
@@ -2029,7 +2109,7 @@ function renderPanelProjects(node) {
     block.className = 'project-block';
     const statusColor = proj.status === 'done' ? '#68C268' : proj.status === 'doing' ? color : '#6470A0';
     const statusLabel = proj.status === 'done' ? '완료' : proj.status === 'doing' ? '진행중' : '예정';
-    const dueStr = proj.dueDate ? `<span style="font-size:10px;color:${isDueSoon(proj.dueDate)?'#E07070':'var(--text3)'};margin-left:6px">📅 ${proj.dueDate}</span>` : '';
+    const dueStr = (proj.startDate || proj.dueDate) ? `<span style="font-size:10px;color:${isDueSoon(proj.dueDate)?'#E07070':'var(--text3)'};margin-left:6px">📅 ${proj.startDate?proj.startDate+' ~ ':''}${proj.dueDate||''}</span>` : '';
 
     block.innerHTML = `
       <div class="project-header" style="cursor:pointer">
@@ -2394,7 +2474,20 @@ window.addEventListener('resize', () => {
 /* ═══════════════════════════════════════════════
    ADD FIELD MODAL
    ═══════════════════════════════════════════════ */
-const FIELD_ICONS = ['🌟','📝','🎯','🏃','🎸','✈️','🍳','💡','📷','🎮','🌿','🤝','🧠','🛒','🏠','🎨','📊','🔬','🎭','🎵'];
+const FIELD_ICONS = [
+  // 기본
+  '🌟','📝','🎯','🏃','🎸','✈️','🍳','💡','📷','🎮',
+  '🌿','🤝','🧠','🛒','🏠','🎨','📊','🔬','🎭','🎵',
+  // 교회·예배 관련
+  '⛪','🙏','📖','✝️','🕊️','🎺','🎻','🪗','🎙️','🕯️',
+  '🫂','💒','🪪','🗺️','📿','🌅','🫶','❤️','🕌','🎶',
+  // 학습·지식 관련
+  '🎓','📚','✏️','🖊️','📐','🔭','🧪','💻','📱','🗒️',
+  '📌','🗂️','🧩','📈','🏫','📓','🖥️','🧮','💬','🔍',
+  // 선교·전도 관련
+  '🌍','🌏','🌎','✉️','🚀','🛸','🏕️','⛺','🤲','🌐',
+  '🛶','🗣️','📢','🚶','🧭','🌄','🏔️','🌱','🕊️','🫙',
+];
 const FIELD_COLORS = [
   { hex:'#A8C4FF', bg:'rgba(168,196,255,0.15)' },
   { hex:'#3DD6A3', bg:'rgba(61,214,163,0.13)' },
@@ -2493,6 +2586,99 @@ document.getElementById('add-field-save').addEventListener('click', () => {
   renderKanban();
   renderCalFilters();
   showToast(`"${name}" 분야가 추가되었습니다 🎉`);
+});
+
+/* ── 분야 편집 모달 ── */
+let editingFieldKey = null;
+let editSelectedIcon = '🌟';
+let editSelectedColor = FIELD_COLORS[0];
+
+function openEditFieldModal(key, f) {
+  editingFieldKey = key;
+  editSelectedIcon = f.icon || '🌟';
+  editSelectedColor = FIELD_COLORS.find(c => c.hex === f.color) || FIELD_COLORS[0];
+
+  document.getElementById('edit-field-name-input').value = f.label;
+  document.getElementById('edit-field-preview-name').textContent = f.label;
+  document.getElementById('edit-field-preview-icon').textContent = editSelectedIcon;
+  document.getElementById('edit-field-preview-dot').style.background = editSelectedColor.hex;
+
+  // 아이콘 피커
+  const iconPicker = document.getElementById('edit-icon-picker');
+  iconPicker.innerHTML = '';
+  FIELD_ICONS.forEach(icon => {
+    const btn = document.createElement('button');
+    btn.textContent = icon;
+    btn.style.cssText = `font-size:20px;width:38px;height:38px;border-radius:8px;border:1.5px solid ${icon===editSelectedIcon?'var(--accent)':'var(--border)'};background:${icon===editSelectedIcon?'var(--bg3)':'transparent'};cursor:pointer;transition:all .12s`;
+    btn.addEventListener('click', () => {
+      editSelectedIcon = icon;
+      document.getElementById('edit-field-preview-icon').textContent = icon;
+      iconPicker.querySelectorAll('button').forEach(b => {
+        b.style.borderColor = b.textContent === icon ? 'var(--accent)' : 'var(--border)';
+        b.style.background  = b.textContent === icon ? 'var(--bg3)' : 'transparent';
+      });
+    });
+    iconPicker.appendChild(btn);
+  });
+
+  // 컬러 피커
+  const colorPicker = document.getElementById('edit-color-picker');
+  colorPicker.innerHTML = '';
+  FIELD_COLORS.forEach(c => {
+    const btn = document.createElement('button');
+    btn.style.cssText = `width:28px;height:28px;border-radius:50%;background:${c.hex};border:2.5px solid ${c.hex===editSelectedColor.hex?'white':'transparent'};cursor:pointer;transition:all .12s;outline:none`;
+    btn.addEventListener('click', () => {
+      editSelectedColor = c;
+      document.getElementById('edit-field-preview-dot').style.background = c.hex;
+      colorPicker.querySelectorAll('button').forEach(b => {
+        b.style.borderColor = b.style.background === c.hex ? 'white' : 'transparent';
+      });
+    });
+    colorPicker.appendChild(btn);
+  });
+
+  document.getElementById('edit-field-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('edit-field-name-input').focus(), 60);
+}
+
+document.getElementById('edit-field-name-input').addEventListener('input', e => {
+  document.getElementById('edit-field-preview-name').textContent = e.target.value.trim() || '분야 이름';
+});
+document.getElementById('edit-field-cancel').addEventListener('click', () => document.getElementById('edit-field-overlay').classList.remove('open'));
+document.getElementById('edit-field-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) e.currentTarget.classList.remove('open'); });
+
+document.getElementById('edit-field-save').addEventListener('click', () => {
+  const name = document.getElementById('edit-field-name-input').value.trim();
+  if (!name) { showToast('분야 이름을 입력하세요'); return; }
+  if (!editingFieldKey) return;
+
+  const updatedField = { label: name, icon: editSelectedIcon, color: editSelectedColor.hex, bg: editSelectedColor.bg };
+
+  // 기본 분야인지 커스텀인지 구분하여 업데이트
+  const DEFAULT_FIELD_KEYS = ['work','yt','learn','health','money'];
+  if (DEFAULT_FIELD_KEYS.includes(editingFieldKey)) {
+    // 기본 분야: customFields에 override로 저장
+    if (!state.customFields) state.customFields = {};
+    state.customFields[editingFieldKey] = updatedField;
+  } else {
+    // 커스텀 분야
+    if (!state.customFields) state.customFields = {};
+    state.customFields[editingFieldKey] = updatedField;
+  }
+
+  // 그래프 노드 라벨도 업데이트
+  const node = state.nodes.find(n => n.id === editingFieldKey);
+  if (node) node.label = name;
+
+  saveData();
+  syncFields();
+  document.getElementById('edit-field-overlay').classList.remove('open');
+  renderCardView();
+  rebuildVirtualNodes();
+  if (ctx) drawGraph();
+  renderKanban();
+  renderCalFilters();
+  showToast(`"${name}" 분야가 수정되었습니다`);
 });
 
 /* ═══════════════════════════════════════════════
@@ -2724,6 +2910,9 @@ function renderCalGrid() {
   const todayStr = today.toISOString().slice(0,10);
   const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
 
+  // 이달 모든 날짜 문자열 미리 계산
+  const allEvs = [...(state.events || []), ...getProjectEvents()];
+
   for (let i = 0; i < totalCells; i++) {
     let day, month, year, isOther = false;
     if (i < firstDay) { day = daysInPrev - firstDay + 1 + i; month = calMonth - 1; year = calYear; isOther = true; }
@@ -2738,22 +2927,63 @@ function renderCalGrid() {
     cell.className = `cal-day${isOther?' other-month':''}${isToday?' today':''}`;
     cell.innerHTML = `<div class="day-num">${day}</div>`;
 
-    // Events — 달력 일정 + 프로젝트/할일 기간 통합
-    const allEvs = [...(state.events || []), ...getProjectEvents()];
-    const dayEvents = allEvs.filter(ev => ev.date === dateStr && activeFilters.has(ev.field));
-    const shown = dayEvents.slice(0, 3);
-    shown.forEach(ev => {
+    // 이 날짜에 표시할 이벤트 분류
+    const pointEvs = [];  // 완료일만 있는 이벤트
+    const barEvs   = [];  // 기간 바 이벤트 (startDate ~ dueDate 안에 포함)
+
+    allEvs.forEach(ev => {
+      if (!activeFilters.has(ev.field)) return;
       const f = FIELDS[ev.field];
+      if (!f) return;
+
+      if (ev._isRange && ev.startDate && ev.dueDate) {
+        // 기간 바: 시작~종료 사이에 있는 날짜
+        if (dateStr >= ev.startDate && dateStr <= ev.dueDate) {
+          const isStart = dateStr === ev.startDate;
+          const isEnd   = dateStr === ev.dueDate;
+          barEvs.push({ ...ev, isStart, isEnd, color: f.color });
+        }
+      } else if (ev.date === dateStr) {
+        // 완료일만 있는 이벤트
+        pointEvs.push({ ...ev, color: f.color });
+      }
+    });
+
+    // 기간 바 렌더링
+    barEvs.forEach(ev => {
+      const bar = document.createElement('div');
+      bar.className = 'cal-range-bar';
+      bar.style.cssText = `
+        background:${ev.color}33;
+        color:${ev.color};
+        border-left:${ev.isStart?'2px solid '+ev.color:'none'};
+        border-right:${ev.isEnd?'2px solid '+ev.color:'none'};
+        border-radius:${ev.isStart&&ev.isEnd?'4px':ev.isStart?'4px 0 0 4px':ev.isEnd?'0 4px 4px 0':'0'};
+        margin:0 -1px;
+      `;
+      bar.textContent = ev.isStart ? (ev.title.length > 8 ? ev.title.slice(0,8)+'…' : ev.title) : '';
+      bar.title = `${ev.title} (${ev.startDate} ~ ${ev.dueDate})`;
+      bar.addEventListener('click', e => { e.stopPropagation(); });
+      cell.appendChild(bar);
+    });
+
+    // 완료일 이벤트 렌더링 (점 형태)
+    const shownPt = pointEvs.slice(0, Math.max(0, 3 - barEvs.length));
+    shownPt.forEach(ev => {
       const evEl = document.createElement('div');
       evEl.className = 'cal-event';
-      evEl.style.cssText = `background:${f.color}22;color:${f.color}`;
+      evEl.style.cssText = `background:${ev.color}22;color:${ev.color}`;
       evEl.textContent = ev.title;
-      evEl.addEventListener('click', e => { e.stopPropagation(); openEventModal(ev, dateStr); });
+      evEl.addEventListener('click', e => { e.stopPropagation(); if (!ev._readOnly) openEventModal(ev, dateStr); });
       cell.appendChild(evEl);
     });
-    if (dayEvents.length > 3) {
+
+    const totalShown = barEvs.length + shownPt.length;
+    const totalAll   = barEvs.length + pointEvs.length;
+    if (totalAll > totalShown) {
       const more = document.createElement('div');
-      more.className = 'cal-more'; more.textContent = `+${dayEvents.length-3}개 더`;
+      more.className = 'cal-more';
+      more.textContent = `+${totalAll - totalShown}개 더`;
       cell.appendChild(more);
     }
 
