@@ -326,6 +326,20 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 
 /* ─── Hierarchical Task Tree ─── */
 .project-block { margin-bottom: 14px; border: 1px solid var(--border2); border-radius: var(--r2); overflow: hidden; }
+.project-block.archived-block { border-color: var(--border); opacity: 0.75; }
+.archive-section { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px; }
+.archive-section-header {
+  display: flex; align-items: center; gap: 8px; cursor: pointer;
+  padding: 6px 8px; border-radius: var(--r); transition: background .13s;
+  user-select: none;
+}
+.archive-section-header:hover { background: var(--bg3); }
+.archive-section-title { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .06em; flex: 1; }
+.archive-section-count { font-size: 10px; color: var(--text3); background: var(--bg3); padding: 1px 6px; border-radius: 8px; }
+.archive-toggle { font-size: 10px; color: var(--text3); transition: transform .15s; }
+.archive-toggle.open { transform: rotate(90deg); }
+.archive-list { margin-top: 8px; display: none; }
+.archive-list.open { display: block; }
 .project-header { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--bg3); cursor: pointer; user-select: none; }
 .project-toggle { font-size: 11px; color: var(--text3); transition: transform .15s; }
 .project-toggle.open { transform: rotate(90deg); }
@@ -582,6 +596,65 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   .yt-ideas-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
+.home-archive-header {
+  display: flex; align-items: center; gap: 10px; cursor: pointer;
+  padding: 10px 14px; border-radius: var(--r2); border: 1px solid var(--border);
+  background: var(--bg2); transition: all .15s; user-select: none;
+}
+.home-archive-header:hover { border-color: var(--border2); background: var(--bg3); }
+.home-archive-count {
+  margin-left: 2px; font-size: 11px; color: var(--text3);
+  background: var(--bg3); padding: 1px 8px; border-radius: 10px;
+}
+.home-archive-toggle { margin-left: auto; font-size: 11px; color: var(--text3); transition: transform .15s; }
+.home-archive-toggle.open { transform: rotate(90deg); }
+
+.archive-item {
+  display: flex; flex-direction: column; gap: 0;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r2); overflow: hidden; margin-bottom: 8px; opacity: 0.85;
+}
+.archive-item-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; cursor: pointer;
+}
+.archive-item-header:hover { background: var(--bg3); }
+.archive-field-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.archive-item-title { font-size: 13px; font-weight: 500; color: var(--text); flex: 1; }
+.archive-item-date { font-size: 10px; color: var(--text3); }
+.archive-item-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.archive-restore-btn {
+  font-size: 11px; padding: 3px 9px; border-radius: 6px;
+  border: 1px solid var(--border2); background: none; color: var(--c-yt);
+  cursor: pointer; transition: all .13s;
+}
+.archive-restore-btn:hover { background: var(--c-yt-bg); border-color: var(--c-yt); }
+.archive-delete-btn {
+  font-size: 11px; padding: 3px 9px; border-radius: 6px;
+  border: 1px solid var(--border); background: none; color: var(--text3);
+  cursor: pointer; transition: all .13s;
+}
+.archive-delete-btn:hover { background: rgba(220,70,70,.14); color: #f07070; border-color: rgba(220,70,70,.3); }
+
+.archive-item-body { padding: 0 14px 10px; display: none; }
+.archive-item-body.open { display: block; }
+.archive-todo-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 0; font-size: 12px; color: var(--text2);
+  border-bottom: 1px solid var(--border);
+}
+.archive-todo-row:last-child { border-bottom: none; }
+.archive-todo-row.done { color: var(--text3); text-decoration: line-through; }
+.archive-plan-row {
+  display: flex; align-items: center; gap: 6px;
+  padding: 3px 0 3px 20px; font-size: 11px; color: var(--text3);
+}
+.archive-plan-row.done { text-decoration: line-through; }
+.archive-memo-row {
+  padding: 3px 0 3px 36px; font-size: 10px; color: var(--text3);
+  display: flex; gap: 5px;
+}
+
 /* ─── Responsive ─── */
 @media (max-width: 768px) {
   .topbar { padding: 8px 12px; }
@@ -625,6 +698,9 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 
       <div class="section-label">오늘 할 일</div>
       <div class="today-list" id="today-list"></div>
+
+      <!-- 완료 보관함 (JS가 렌더) -->
+      <div id="home-archive-section" style="margin-top:28px"></div>
     </div>
 
     <!-- ② 그래프 뷰 -->
@@ -1194,21 +1270,46 @@ navTabs.forEach(tab => {
    CARD VIEW
    ═══════════════════════════════════════════════ */
 function getTodayTasks() {
+  const todayStr = new Date().toISOString().slice(0, 10);
   const items = [];
+
   state.nodes.forEach(node => {
     if (!node.field) return;
-    // 계층형 projects에서 미완료 할 일 수집
+
     (node.projects || []).forEach(proj => {
+      if (proj.archived) return; // 보관된 프로젝트 제외
       (proj.todos || []).forEach(todo => {
-        if (!todo.done) items.push({ id: todo.id, text: todo.text, done: todo.done, nodeId: node.id, field: node.field, nodeLabel: node.label });
+        if (todo.done) return;
+
+        const hasDue   = !!todo.dueDate;
+        const hasStart = !!todo.startDate;
+
+        if (!hasDue && !hasStart) {
+          // 날짜 없는 할 일: 표시 안 함 (날짜 설정된 것만 오늘 할 일에 노출)
+          return;
+        }
+
+        if (hasDue && hasStart) {
+          // 시작~완료 기간: 오늘이 범위 안이면 표시
+          if (todayStr >= todo.startDate && todayStr <= todo.dueDate) {
+            items.push({ id: todo.id, text: todo.text, done: todo.done, nodeId: node.id, field: node.field, nodeLabel: node.label });
+          }
+        } else if (hasDue) {
+          // 완료일만: 정확히 오늘인 경우만 표시
+          if (todo.dueDate === todayStr) {
+            items.push({ id: todo.id, text: todo.text, done: todo.done, nodeId: node.id, field: node.field, nodeLabel: node.label });
+          }
+        }
       });
     });
-    // fallback: 구 tasks
+
+    // fallback: 구 tasks (날짜 필드 없으면 항상 표시)
     (node.tasks || []).forEach(t => {
       if (!t.done) items.push({ ...t, nodeId: node.id, field: node.field, nodeLabel: node.label });
     });
   });
-  return items.slice(0, 8);
+
+  return items.slice(0, 10);
 }
 
 function getFieldProgress(field) {
@@ -1297,7 +1398,8 @@ function renderCardView() {
   list.innerHTML = '';
   const tasks = getTodayTasks();
   if (tasks.length === 0) {
-    list.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:12px 0">오늘 할 일이 없습니다 🎉</div>';
+    list.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:12px 0">오늘 마감이거나 진행 중인 할 일이 없습니다 🎉<br><span style="font-size:11px">할 일에 기간을 설정하면 이곳에 표시됩니다.</span></div>';
+    renderHomeArchive();
     return;
   }
   tasks.forEach(t => {
@@ -1318,6 +1420,9 @@ function renderCardView() {
     el.addEventListener('click', () => openNodePanel(t.nodeId));
     list.appendChild(el);
   });
+
+  // 완료 보관함 렌더
+  renderHomeArchive();
 }
 
 function toggleTask(nodeId, taskId) {
@@ -1326,6 +1431,146 @@ function toggleTask(nodeId, taskId) {
   const tasks = node.tasks.map(t => t.id === taskId ? { ...t, done: !t.done } : t);
   updateNode(nodeId, { tasks });
 }
+
+/* ── 홈 완료 보관함 렌더 ── */
+function renderHomeArchive() {
+  const section = document.getElementById('home-archive-section');
+  if (!section) return;
+
+  // 모든 분야에서 보관된 프로젝트 수집
+  const archivedItems = [];
+  state.nodes.forEach(node => {
+    if (!node.field) return;
+    const f = FIELDS[node.field];
+    if (!f) return;
+    (node.projects || []).forEach(proj => {
+      if (proj.archived) archivedItems.push({ proj, node, f });
+    });
+  });
+
+  // 날짜 최신순 정렬
+  archivedItems.sort((a, b) =>
+    (b.proj.archivedAt || '').localeCompare(a.proj.archivedAt || '')
+  );
+
+  // 섹션 전체를 매번 새로 그림 — 항상 표시
+  section.innerHTML = `
+    <div id="ha-header" style="display:flex;align-items:center;gap:10px;cursor:pointer;
+      padding:10px 14px;border-radius:var(--r2);border:1px solid var(--border);
+      background:var(--bg2);transition:border-color .15s;user-select:none">
+      <span style="font-size:15px">📦</span>
+      <span style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em">완료 보관함</span>
+      <span style="font-size:11px;background:var(--bg3);color:var(--text3);padding:1px 8px;border-radius:10px;margin-left:2px">\${archivedItems.length}</span>
+      <span id="ha-toggle" style="margin-left:auto;font-size:11px;color:var(--text3);transition:transform .2s">▶</span>
+    </div>
+    <div id="ha-list" style="display:none;margin-top:8px"></div>
+  `;
+
+  const header   = section.querySelector('#ha-header');
+  const listEl   = section.querySelector('#ha-list');
+  const toggleEl = section.querySelector('#ha-toggle');
+
+  header.addEventListener('mouseenter', () => header.style.borderColor = 'var(--border2)');
+  header.addEventListener('mouseleave', () => header.style.borderColor = 'var(--border)');
+
+  header.addEventListener('click', () => {
+    const isOpen = listEl.style.display !== 'none';
+    listEl.style.display = isOpen ? 'none' : 'block';
+    toggleEl.style.transform = isOpen ? '' : 'rotate(90deg)';
+  });
+
+  // 빈 상태 안내
+  if (archivedItems.length === 0) {
+    listEl.innerHTML = `
+      <div style="padding:16px 14px;background:var(--bg2);border:1px solid var(--border);
+        border-radius:var(--r2);color:var(--text3);font-size:13px;line-height:1.8">
+        아직 보관된 프로젝트가 없습니다.<br>
+        <span style="font-size:11px">그래프 뷰 → 분야 노드 클릭 → 프로젝트 패널에서 📦 버튼을 눌러 보관하세요.</span>
+      </div>`;
+    return;
+  }
+
+  // 아이템 렌더
+  archivedItems.forEach(({ proj, node, f }) => {
+    const totalTodos = (proj.todos || []).length;
+    const doneTodos  = (proj.todos || []).filter(t => t.done).length;
+    const pct = totalTodos > 0 ? Math.round(doneTodos / totalTodos * 100) : 100;
+    const dateLabel = proj.archivedAt ? 'booked ' + proj.archivedAt : '';
+    const dueLabel  = proj.dueDate
+      ? '  📅 ' + (proj.startDate ? proj.startDate + ' ~ ' : '') + proj.dueDate
+      : '';
+
+    const item = document.createElement('div');
+    item.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;margin-bottom:8px';
+    item.innerHTML = `
+      <div class="ha-hd" style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer">
+        <div style="width:7px;height:7px;border-radius:50%;flex-shrink:0;background:\${f.color}"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:500;color:var(--text)">\${proj.title}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px">\${f.label}\${proj.archivedAt ? '  ·  보관일 ' + proj.archivedAt : ''}\${dueLabel}</div>
+        </div>
+        <div style="font-size:11px;font-weight:600;color:\${pct===100?'#68C268':'var(--text3)'};margin-right:6px">\${pct}%</div>
+        <button class="ha-restore" style="font-size:11px;padding:3px 9px;border-radius:6px;border:1px solid var(--border2);background:none;color:var(--c-yt);cursor:pointer">↩ 복원</button>
+        <button class="ha-delete" style="font-size:11px;padding:3px 9px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--text3);cursor:pointer">삭제</button>
+        <span class="ha-arr" style="font-size:10px;color:var(--text3);margin-left:4px;transition:transform .15s">▶</span>
+      </div>
+      <div class="ha-body" style="display:none;padding:0 14px 10px"></div>
+    `;
+
+    const hd   = item.querySelector('.ha-hd');
+    const body = item.querySelector('.ha-body');
+    const arr  = item.querySelector('.ha-arr');
+
+    hd.addEventListener('click', e => {
+      if (e.target.closest('.ha-restore') || e.target.closest('.ha-delete')) return;
+      const open = body.style.display !== 'none';
+      body.style.display = open ? 'none' : 'block';
+      arr.style.transform = open ? '' : 'rotate(90deg)';
+    });
+
+    item.querySelector('.ha-restore').addEventListener('click', e => {
+      e.stopPropagation();
+      proj.archived = false; proj.archivedAt = null;
+      syncAll(); showToast('"' + proj.title + '"이 복원되었습니다');
+    });
+
+    item.querySelector('.ha-delete').addEventListener('click', e => {
+      e.stopPropagation();
+      if (!confirm('"' + proj.title + '"을 완전히 삭제할까요?\n복원할 수 없습니다.')) return;
+      node.projects = node.projects.filter(p => p.id !== proj.id);
+      syncAll(); showToast('"' + proj.title + '"이 삭제되었습니다');
+    });
+
+    // 할 일 & 세부 계획 & 메모
+    (proj.todos || []).forEach(todo => {
+      const r = document.createElement('div');
+      r.style.cssText = 'display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px;border-bottom:1px solid var(--border);color:' + (todo.done ? 'var(--text3)' : 'var(--text2)') + ';' + (todo.done ? 'text-decoration:line-through' : '');
+      r.innerHTML = '<span style="font-size:11px;flex-shrink:0">' + (todo.done ? '✅' : '⬜') + '</span><span style="flex:1">' + todo.text + '</span>' + (todo.dueDate ? '<span style="font-size:10px;color:var(--text3)">📅 ' + todo.dueDate + '</span>' : '');
+      body.appendChild(r);
+
+      (todo.plans || []).forEach(plan => {
+        const pr = document.createElement('div');
+        pr.style.cssText = 'display:flex;align-items:center;gap:6px;padding:3px 0 3px 20px;font-size:11px;color:var(--text3);' + (plan.done ? 'text-decoration:line-through' : '');
+        pr.innerHTML = '<span style="font-size:10px;flex-shrink:0">' + (plan.done ? '✅' : '⬜') + '</span><span>' + plan.text + '</span>';
+        body.appendChild(pr);
+        (plan.memos || []).forEach(memo => {
+          const mr = document.createElement('div');
+          mr.style.cssText = 'display:flex;gap:5px;padding:2px 0 2px 36px;font-size:10px;color:var(--text3)';
+          mr.innerHTML = '<span>📝</span><span>' + memo.text + '</span>';
+          body.appendChild(mr);
+        });
+      });
+    });
+
+    const bar = document.createElement('div');
+    bar.style.cssText = 'margin:8px 0 2px;height:3px;background:var(--border);border-radius:2px;overflow:hidden';
+    bar.innerHTML = '<div style="width:' + pct + '%;height:100%;background:' + (pct===100?'#68C268':f.color) + ';border-radius:2px"></div>';
+    body.appendChild(bar);
+
+    listEl.appendChild(item);
+  });
+}
+
 
 /* ═══════════════════════════════════════════════
    GRAPH VIEW — Canvas-based
@@ -2124,84 +2369,179 @@ function renderPanelProjects(node) {
   const color = node.field ? FIELDS[node.field].color : '#7B9FE0';
   const projects = node.projects || [];
 
-  if (projects.length === 0) {
+  // 활성 프로젝트 / 보관된 프로젝트 분리
+  const activeProjects   = projects.filter(p => !p.archived);
+  const archivedProjects = projects.filter(p =>  p.archived);
+
+  if (activeProjects.length === 0) {
     container.innerHTML = `<div style="color:var(--text3);font-size:12px;padding:8px 0">프로젝트가 없습니다. ＋ 프로젝트 버튼으로 추가하세요.</div>`;
   }
 
-  projects.forEach((proj, pi) => {
-    const block = document.createElement('div');
-    block.className = 'project-block';
-    const statusColor = proj.status === 'done' ? '#68C268' : proj.status === 'doing' ? color : '#6470A0';
-    const statusLabel = proj.status === 'done' ? '완료' : proj.status === 'doing' ? '진행중' : '예정';
-    const dueStr = (proj.startDate || proj.dueDate) ? `<span style="font-size:10px;color:${isDueSoon(proj.dueDate)?'#E07070':'var(--text3)'};margin-left:6px">📅 ${proj.startDate?proj.startDate+' ~ ':''}${proj.dueDate||''}</span>` : '';
+  // ── 활성 프로젝트 렌더 ──
+  activeProjects.forEach((proj) => {
+    container.appendChild(buildProjectBlock(proj, node, color, false));
+  });
 
-    block.innerHTML = `
-      <div class="project-header" style="cursor:pointer">
-        <span class="project-toggle open">▶</span>
-        <span class="project-name">${proj.title}</span>
-        ${dueStr}
-        <span class="project-status" style="background:${statusColor}22;color:${statusColor};margin-left:auto">${statusLabel}</span>
-        <button class="item-action-btn" data-action="due-proj" title="기간 설정">📅</button>
-        <button class="item-action-btn del" data-action="del-proj" title="삭제">✕</button>
-      </div>
-      <div class="project-body open"></div>
+  // ── 완료 보관함 섹션 ──
+  if (archivedProjects.length > 0) {
+    const section = document.createElement('div');
+    section.className = 'archive-section';
+
+    const hd = document.createElement('div');
+    hd.className = 'archive-section-header';
+    hd.innerHTML = `
+      <span style="font-size:14px">📦</span>
+      <span class="archive-section-title">완료 보관함</span>
+      <span class="archive-section-count">${archivedProjects.length}</span>
+      <span class="archive-toggle">▶</span>
     `;
-    container.appendChild(block);
+    section.appendChild(hd);
 
-    const header = block.querySelector('.project-header');
-    const toggle = block.querySelector('.project-toggle');
-    const body   = block.querySelector('.project-body');
+    const list = document.createElement('div');
+    list.className = 'archive-list';
+    section.appendChild(list);
 
-    // 헤더 클릭 — 액션 버튼 제외
-    header.addEventListener('click', e => {
-      if (e.target.dataset.action) return;
-      body.classList.toggle('open');
-      toggle.classList.toggle('open');
+    hd.addEventListener('click', () => {
+      list.classList.toggle('open');
+      hd.querySelector('.archive-toggle').classList.toggle('open');
     });
 
-    // 기간 설정
-    header.querySelector('[data-action="due-proj"]').addEventListener('click', e => {
-      e.stopPropagation();
-      openDueDatePicker(proj, 'project', () => syncAll());
+    archivedProjects.forEach(proj => {
+      list.appendChild(buildProjectBlock(proj, node, color, true));
     });
 
-    // 프로젝트 삭제
-    header.querySelector('[data-action="del-proj"]').addEventListener('click', e => {
-      e.stopPropagation();
-      if (!confirm(`"${proj.title}" 프로젝트를 삭제할까요?`)) return;
-      node.projects = node.projects.filter(p => p.id !== proj.id);
+    container.appendChild(section);
+  }
+
+  // ── 프로젝트 추가 버튼 ──
+  const addProjBtn = document.getElementById('add-project-btn');
+  if (addProjBtn) {
+    addProjBtn.onclick = () => {
+      const name = prompt('프로젝트 이름을 입력하세요:');
+      if (!name || !name.trim()) return;
+      const n2 = getNode(currentNodeId);
+      if (!n2) return;
+      if (!n2.projects) n2.projects = [];
+      n2.projects.push({ id: 'wp' + Date.now(), title: name.trim(), status: 'todo', todos: [], archived: false });
       syncAll();
-      showToast('프로젝트가 삭제되었습니다');
-    });
+      showToast('프로젝트가 추가되었습니다');
+    };
+  }
+}
 
-    // 할 일 목록
-    (proj.todos || []).forEach((todo) => {
-      const todoEl = document.createElement('div');
-      todoEl.className = 'todo-item';
-      const hasPlans = todo.plans && todo.plans.length > 0;
-      const todoDue = todo.dueDate ? `<span style="font-size:10px;color:${isDueSoon(todo.dueDate)?'#E07070':'var(--text3)'};margin-left:4px">📅${todo.dueDate}</span>` : '';
-      todoEl.innerHTML = `
-        <div class="todo-row">
-          <div class="checkbox${todo.done?' checked':''}" style="${todo.done?'background:'+color+';border-color:'+color:'border-color:'+color+'88'}"></div>
-          <span class="todo-toggle${hasPlans?' open':''}">▶</span>
-          <span class="todo-text${todo.done?' done':''}">${todo.text}</span>
-          ${todoDue}
+/* 프로젝트 블록 DOM 생성 함수 */
+function buildProjectBlock(proj, node, color, isArchived) {
+  const block = document.createElement('div');
+  block.className = 'project-block' + (isArchived ? ' archived-block' : '');
+
+  const statusColor = proj.status === 'done' ? '#68C268' : proj.status === 'doing' ? color : '#6470A0';
+  const statusLabel = proj.status === 'done' ? '완료' : proj.status === 'doing' ? '진행중' : '예정';
+  const dueStr = (proj.startDate || proj.dueDate)
+    ? `<span style="font-size:10px;color:${isDueSoon(proj.dueDate)?'#E07070':'var(--text3)'};margin-left:6px">📅 ${proj.startDate ? proj.startDate + ' ~ ' : ''}${proj.dueDate || ''}</span>`
+    : '';
+
+  // 보관된 경우엔 복원/삭제 버튼, 활성 경우엔 기간설정/보관/삭제 버튼
+  const actionBtns = isArchived ? `
+    <button class="item-action-btn" data-action="restore-proj" title="복원" style="color:var(--c-yt)">↩</button>
+    <button class="item-action-btn del" data-action="del-proj" title="완전 삭제">✕</button>
+  ` : `
+    <button class="item-action-btn" data-action="due-proj" title="기간 설정">📅</button>
+    <button class="item-action-btn" data-action="archive-proj" title="완료 보관" style="color:var(--text3)">📦</button>
+    <button class="item-action-btn del" data-action="del-proj" title="삭제">✕</button>
+  `;
+
+  block.innerHTML = `
+    <div class="project-header" style="cursor:pointer${isArchived ? ';opacity:0.8' : ''}">
+      <span class="project-toggle open">▶</span>
+      <span class="project-name">${proj.title}</span>
+      ${dueStr}
+      <span class="project-status" style="background:${statusColor}22;color:${statusColor};margin-left:auto">${statusLabel}</span>
+      ${actionBtns}
+    </div>
+    <div class="project-body open"></div>
+  `;
+
+  const header = block.querySelector('.project-header');
+  const toggle = block.querySelector('.project-toggle');
+  const body   = block.querySelector('.project-body');
+
+  header.addEventListener('click', e => {
+    if (e.target.dataset.action) return;
+    body.classList.toggle('open');
+    toggle.classList.toggle('open');
+  });
+
+  // 기간 설정
+  const dueBtn = header.querySelector('[data-action="due-proj"]');
+  if (dueBtn) dueBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    openDueDatePicker(proj, 'project', () => syncAll());
+  });
+
+  // 📦 보관
+  const archBtn = header.querySelector('[data-action="archive-proj"]');
+  if (archBtn) archBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    proj.archived = true;
+    proj.archivedAt = new Date().toISOString().slice(0, 10);
+    syncAll();
+    showToast(`"${proj.title}"이 완료 보관함으로 이동되었습니다`);
+  });
+
+  // ↩ 복원
+  const restoreBtn = header.querySelector('[data-action="restore-proj"]');
+  if (restoreBtn) restoreBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    proj.archived = false;
+    proj.archivedAt = null;
+    syncAll();
+    showToast(`"${proj.title}"이 복원되었습니다`);
+  });
+
+  // 삭제
+  header.querySelector('[data-action="del-proj"]').addEventListener('click', e => {
+    e.stopPropagation();
+    const msg = isArchived
+      ? `"${proj.title}"을 완전히 삭제할까요? 복원할 수 없습니다.`
+      : `"${proj.title}" 프로젝트를 삭제할까요?`;
+    if (!confirm(msg)) return;
+    node.projects = node.projects.filter(p => p.id !== proj.id);
+    syncAll();
+    showToast('프로젝트가 삭제되었습니다');
+  });
+
+  // 할 일 목록 (보관된 경우 읽기 전용으로 표시)
+  (proj.todos || []).forEach((todo) => {
+    const todoEl = document.createElement('div');
+    todoEl.className = 'todo-item';
+    const hasPlans = todo.plans && todo.plans.length > 0;
+    const todoDue = todo.dueDate
+      ? `<span style="font-size:10px;color:${isDueSoon(todo.dueDate)?'#E07070':'var(--text3)'};margin-left:4px">📅${todo.dueDate}</span>`
+      : '';
+    todoEl.innerHTML = `
+      <div class="todo-row">
+        <div class="checkbox${todo.done?' checked':''}" style="${todo.done?'background:'+color+';border-color:'+color:'border-color:'+color+'88'}"></div>
+        <span class="todo-toggle${hasPlans?' open':''}">▶</span>
+        <span class="todo-text${todo.done?' done':''}">${todo.text}</span>
+        ${todoDue}
+        ${!isArchived ? `
           <button class="item-action-btn" data-action="due-todo" title="기간 설정">📅</button>
           <button class="item-action-btn del" data-action="del-todo" title="삭제">✕</button>
-        </div>
-        <div class="todo-plans${hasPlans?' open':''}"></div>
-      `;
-      body.appendChild(todoEl);
+        ` : ''}
+      </div>
+      <div class="todo-plans${hasPlans?' open':''}"></div>
+    `;
+    body.appendChild(todoEl);
 
-      const todoRow    = todoEl.querySelector('.todo-row');
-      const todoToggle = todoEl.querySelector('.todo-toggle');
-      const plansEl    = todoEl.querySelector('.todo-plans');
-      const cb         = todoEl.querySelector('.checkbox');
+    const todoRow    = todoEl.querySelector('.todo-row');
+    const todoToggle = todoEl.querySelector('.todo-toggle');
+    const plansEl    = todoEl.querySelector('.todo-plans');
+    const cb         = todoEl.querySelector('.checkbox');
 
+    if (!isArchived) {
       cb.addEventListener('click', e => {
         e.stopPropagation();
         todo.done = !todo.done;
-        // 칸반 상태 자동 연동
         if (todo.done && proj.todos.every(t => t.done)) proj.status = 'done';
         else if (todo.done) proj.status = 'doing';
         syncAll();
@@ -2213,22 +2553,31 @@ function renderPanelProjects(node) {
         todoToggle.classList.toggle('open');
       });
 
-      todoRow.querySelector('[data-action="due-todo"]').addEventListener('click', e => {
+      const dueTodoBtn = todoRow.querySelector('[data-action="due-todo"]');
+      if (dueTodoBtn) dueTodoBtn.addEventListener('click', e => {
         e.stopPropagation();
         openDueDatePicker(todo, 'todo', () => syncAll());
       });
 
-      todoRow.querySelector('[data-action="del-todo"]').addEventListener('click', e => {
+      const delTodoBtn = todoRow.querySelector('[data-action="del-todo"]');
+      if (delTodoBtn) delTodoBtn.addEventListener('click', e => {
         e.stopPropagation();
         if (!confirm(`"${todo.text}" 할 일을 삭제할까요?`)) return;
         proj.todos = proj.todos.filter(t => t.id !== todo.id);
         syncAll();
         showToast('할 일이 삭제되었습니다');
       });
+    } else {
+      // 보관된 경우: 토글만 가능
+      todoRow.addEventListener('click', () => {
+        plansEl.classList.toggle('open');
+        todoToggle.classList.toggle('open');
+      });
+    }
 
-      renderPlans(plansEl, todo, color, proj, node);
+    renderPlans(plansEl, todo, color, proj, node, isArchived);
 
-      // 세부 계획 추가 버튼
+    if (!isArchived) {
       const addPlanBtn = document.createElement('button');
       addPlanBtn.className = 'add-child-btn';
       addPlanBtn.innerHTML = '＋ 세부 계획 추가';
@@ -2241,9 +2590,10 @@ function renderPanelProjects(node) {
         showToast('세부 계획이 추가되었습니다');
       });
       plansEl.appendChild(addPlanBtn);
-    });
+    }
+  });
 
-    // 할 일 추가 버튼
+  if (!isArchived) {
     const addTodoBtn = document.createElement('button');
     addTodoBtn.className = 'add-child-btn';
     addTodoBtn.style.cssText = 'margin:4px 8px 8px;width:calc(100% - 16px)';
@@ -2258,25 +2608,12 @@ function renderPanelProjects(node) {
       showToast('할 일이 추가되었습니다');
     });
     body.appendChild(addTodoBtn);
-  });
-
-  // 프로젝트 추가 버튼
-  const addProjBtn = document.getElementById('add-project-btn');
-  if (addProjBtn) {
-    addProjBtn.onclick = () => {
-      const name = prompt('프로젝트 이름을 입력하세요:');
-      if (!name || !name.trim()) return;
-      const n2 = getNode(currentNodeId);
-      if (!n2) return;
-      if (!n2.projects) n2.projects = [];
-      n2.projects.push({ id: 'wp' + Date.now(), title: name.trim(), status: 'todo', todos: [] });
-      syncAll();
-      showToast('프로젝트가 추가되었습니다');
-    };
   }
+
+  return block;
 }
 
-function renderPlans(plansEl, todo, color, proj, node) {
+function renderPlans(plansEl, todo, color, proj, node, isArchived) {
   plansEl.querySelectorAll('.plan-item').forEach(el => el.remove());
   const insertBefore = plansEl.querySelector('.add-child-btn');
 
@@ -2291,8 +2628,10 @@ function renderPlans(plansEl, todo, color, proj, node) {
         <span class="plan-toggle${hasMemos?' open':''}">▶</span>
         <span class="plan-text${plan.done?' done':''}">${plan.text}</span>
         ${planDue}
-        <button class="item-action-btn" data-action="due-plan" title="기간 설정">📅</button>
-        <button class="item-action-btn del" data-action="del-plan" title="삭제">✕</button>
+        ${!isArchived ? `
+          <button class="item-action-btn" data-action="due-plan" title="기간 설정">📅</button>
+          <button class="item-action-btn del" data-action="del-plan" title="삭제">✕</button>
+        ` : ''}
       </div>
       <div class="plan-memos${hasMemos?' open':''}"></div>
     `;
@@ -2304,11 +2643,13 @@ function renderPlans(plansEl, todo, color, proj, node) {
     const memosEl   = planEl.querySelector('.plan-memos');
     const planCb    = planEl.querySelector('.plan-cb');
 
-    planCb.addEventListener('click', e => {
-      e.stopPropagation();
-      plan.done = !plan.done;
-      syncAll();
-    });
+    if (!isArchived) {
+      planCb.addEventListener('click', e => {
+        e.stopPropagation();
+        plan.done = !plan.done;
+        syncAll();
+      });
+    }
 
     planRow.addEventListener('click', e => {
       if (e.target === planCb || e.target.dataset.action) return;
@@ -2316,18 +2657,20 @@ function renderPlans(plansEl, todo, color, proj, node) {
       planToggle.classList.toggle('open');
     });
 
-    planRow.querySelector('[data-action="due-plan"]').addEventListener('click', e => {
-      e.stopPropagation();
-      openDueDatePicker(plan, 'plan', () => syncAll());
-    });
+    if (!isArchived) {
+      planRow.querySelector('[data-action="due-plan"]').addEventListener('click', e => {
+        e.stopPropagation();
+        openDueDatePicker(plan, 'plan', () => syncAll());
+      });
 
-    planRow.querySelector('[data-action="del-plan"]').addEventListener('click', e => {
-      e.stopPropagation();
-      if (!confirm(`"${plan.text}" 세부 계획을 삭제할까요?`)) return;
-      todo.plans = todo.plans.filter(p => p.id !== plan.id);
-      syncAll();
-      showToast('세부 계획이 삭제되었습니다');
-    });
+      planRow.querySelector('[data-action="del-plan"]').addEventListener('click', e => {
+        e.stopPropagation();
+        if (!confirm(`"${plan.text}" 세부 계획을 삭제할까요?`)) return;
+        todo.plans = todo.plans.filter(p => p.id !== plan.id);
+        syncAll();
+        showToast('세부 계획이 삭제되었습니다');
+      });
+    }
 
     // 메모 렌더링
     (plan.memos || []).forEach(memo => {
@@ -2336,30 +2679,34 @@ function renderPlans(plansEl, todo, color, proj, node) {
       memoEl.innerHTML = `
         <span class="memo-icon">📝</span>
         <span class="memo-text">${memo.text}</span>
-        <button class="item-action-btn del" style="margin-left:auto;flex-shrink:0" title="메모 삭제">✕</button>
+        ${!isArchived ? `<button class="item-action-btn del" style="margin-left:auto;flex-shrink:0" title="메모 삭제">✕</button>` : ''}
       `;
-      memoEl.querySelector('.item-action-btn').addEventListener('click', () => {
-        if (!confirm('메모를 삭제할까요?')) return;
-        plan.memos = plan.memos.filter(m => m.id !== memo.id);
-        syncAll();
-        showToast('메모가 삭제되었습니다');
-      });
+      if (!isArchived) {
+        memoEl.querySelector('.item-action-btn')?.addEventListener('click', () => {
+          if (!confirm('메모를 삭제할까요?')) return;
+          plan.memos = plan.memos.filter(m => m.id !== memo.id);
+          syncAll();
+          showToast('메모가 삭제되었습니다');
+        });
+      }
       memosEl.appendChild(memoEl);
     });
 
-    // 메모 추가 버튼
-    const addMemoBtn = document.createElement('button');
-    addMemoBtn.className = 'add-child-btn';
-    addMemoBtn.innerHTML = '＋ 메모 추가';
-    addMemoBtn.addEventListener('click', () => {
-      const text = prompt('메모를 입력하세요:');
-      if (!text || !text.trim()) return;
-      if (!plan.memos) plan.memos = [];
-      plan.memos.push({ id: 'mo' + Date.now(), text: text.trim() });
-      syncAll();
-      showToast('메모가 추가되었습니다');
-    });
-    memosEl.appendChild(addMemoBtn);
+    // 메모 추가 버튼 (보관된 경우 숨김)
+    if (!isArchived) {
+      const addMemoBtn = document.createElement('button');
+      addMemoBtn.className = 'add-child-btn';
+      addMemoBtn.innerHTML = '＋ 메모 추가';
+      addMemoBtn.addEventListener('click', () => {
+        const text = prompt('메모를 입력하세요:');
+        if (!text || !text.trim()) return;
+        if (!plan.memos) plan.memos = [];
+        plan.memos.push({ id: 'mo' + Date.now(), text: text.trim() });
+        syncAll();
+        showToast('메모가 추가되었습니다');
+      });
+      memosEl.appendChild(addMemoBtn);
+    }
   });
 }
 
