@@ -3028,18 +3028,28 @@ function renderCalGrid() {
     ev._lane = lane;
   });
 
-  // ③ 셀별로 최대 레인 수 파악 → 레인 수만큼 플레이스홀더 미리 삽입
-  //    각 셀에 레인 순서대로 div 슬롯을 만들고 이벤트로 채움
+  // ③ 모든 셀에 레인 수만큼 플레이스홀더를 미리 DOM에 삽입
+  //    → 모든 셀이 동일한 구조를 가지므로 행이 절대 어긋나지 않음
   const maxLane = rangeEvs.reduce((m, ev) => Math.max(m, ev._lane ?? 0), -1);
+  const PH_H = '16px'; // 플레이스홀더 & 바 고정 높이
 
-  // 셀마다 레인 슬롯 배열 생성 (null = 빈 슬롯)
-  const cellSlots = new Map(); // dateStr → Array<element|null>
-  cellMap.forEach((el, dateStr) => {
-    const slots = Array(maxLane + 1).fill(null);
-    cellSlots.set(dateStr, slots);
-  });
+  // 셀마다 레인별 플레이스홀더 div 배열 보관
+  const cellLaneDivs = new Map(); // dateStr → Array<HTMLElement>
 
-  // ④ 각 이벤트를 해당 레인 슬롯에 배치
+  if (maxLane >= 0) {
+    cellMap.forEach((el, dateStr) => {
+      const laneDivs = [];
+      for (let lane = 0; lane <= maxLane; lane++) {
+        const ph = document.createElement('div');
+        ph.style.cssText = `height:${PH_H};min-height:${PH_H};margin-bottom:2px;display:flex;align-items:center;`;
+        el.appendChild(ph);
+        laneDivs.push(ph);
+      }
+      cellLaneDivs.set(dateStr, laneDivs);
+    });
+  }
+
+  // ④ 각 이벤트의 바를 해당 레인 플레이스홀더에 채워넣기
   rangeEvs.forEach(ev => {
     if (ev._lane === undefined) return;
     if (activeFilters.size > 0 && !activeFilters.has(ev.field)) return;
@@ -3047,11 +3057,11 @@ function renderCalGrid() {
     const total = ev.dateRange.length;
 
     ev.dateRange.forEach((dateStr, idx) => {
-      const el = cellMap.get(dateStr);
-      if (!el) return;
+      const laneDivs = cellLaneDivs.get(dateStr);
+      if (!laneDivs) return; // 달력에 없는 날짜 스킵
 
-      const isFirst  = idx === 0;
-      const isLast   = idx === total - 1;
+      const isFirst = idx === 0;
+      const isLast  = idx === total - 1;
 
       const marginL = isFirst ? '0'    : '-7px';
       const marginR = isLast  ? '0'    : '-7px';
@@ -3060,8 +3070,10 @@ function renderCalGrid() {
       const borderL = isFirst ? `2px solid ${ev.color}` : 'none';
       const borderR = isLast  ? `2px solid ${ev.color}` : 'none';
 
-      const bar = document.createElement('div');
-      bar.style.cssText = `
+      // 플레이스홀더를 바 스타일로 업데이트 (교체 불필요, 인라인 스타일만 변경)
+      const ph = laneDivs[ev._lane];
+      ph.style.cssText = `
+        height:${PH_H};min-height:${PH_H};margin-bottom:2px;
         background:${ev.color}2a;
         color:${ev.color};
         border-top:1.5px solid ${ev.color}70;
@@ -3069,39 +3081,22 @@ function renderCalGrid() {
         border-left:${borderL};
         border-right:${borderR};
         border-radius:${radiusL} ${radiusR} ${radiusR} ${radiusL};
-        margin:0 ${marginR} 2px ${marginL};
-        padding:1px 4px;
+        margin-left:${marginL};
+        margin-right:${marginR};
+        margin-bottom:2px;
+        padding:0 4px;
         font-size:9px;
         font-weight:500;
-        min-height:14px;
         display:flex;
         align-items:center;
         white-space:nowrap;
         overflow:hidden;
         text-overflow:ellipsis;
+        cursor:default;
       `;
-      bar.textContent = isFirst ? ev.title : '';
-      bar.title = `${ev.title} (${ev.startDate} ~ ${ev.dueDate})`;
-      bar.addEventListener('click', e => e.stopPropagation());
-
-      const slots = cellSlots.get(dateStr);
-      if (slots) slots[ev._lane] = bar;
-    });
-  });
-
-  // ⑤ 각 셀에 레인 순서대로 DOM 삽입 (빈 레인은 플레이스홀더)
-  cellSlots.forEach((slots, dateStr) => {
-    const el = cellMap.get(dateStr);
-    if (!el) return;
-    slots.forEach(barEl => {
-      if (barEl) {
-        el.appendChild(barEl);
-      } else if (slots.some(s => s !== null)) {
-        // 이 날짜에 다른 레인의 바가 있으면 빈 자리를 플레이스홀더로 채움
-        const ph = document.createElement('div');
-        ph.style.cssText = 'min-height:14px;margin-bottom:2px;';
-        el.appendChild(ph);
-      }
+      ph.textContent = isFirst ? ev.title : '';
+      ph.title = `${ev.title} (${ev.startDate} ~ ${ev.dueDate})`;
+      ph.onclick = e => e.stopPropagation();
     });
   });
 
