@@ -944,6 +944,31 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
         <button class="due-preset" data-days="30">1달 후</button>
         <button class="due-preset" data-days="0" style="color:#E07070;border-color:#E07070">날짜 제거</button>
       </div>
+
+      <!-- 반복 설정 (프로젝트 기간 설정 시에만 표시) -->
+      <div id="repeat-section" style="display:none;border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">🔁 반복 설정</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="repeat-btn" data-repeat="none"   style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);cursor:pointer">없음</button>
+          <button class="repeat-btn" data-repeat="daily"  style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text3);cursor:pointer">매일</button>
+          <button class="repeat-btn" data-repeat="weekly" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text3);cursor:pointer">매주</button>
+          <button class="repeat-btn" data-repeat="monthly" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text3);cursor:pointer">매월</button>
+        </div>
+        <div id="repeat-weekday-wrap" style="display:none;margin-top:8px">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:6px">반복 요일</div>
+          <div style="display:flex;gap:4px">
+            <button class="wd-btn" data-wd="0" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--bg3);color:var(--text3);font-size:11px;cursor:pointer">일</button>
+            <button class="wd-btn" data-wd="1" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--bg3);color:var(--text3);font-size:11px;cursor:pointer">월</button>
+            <button class="wd-btn" data-wd="2" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--bg3);color:var(--text3);font-size:11px;cursor:pointer">화</button>
+            <button class="wd-btn" data-wd="3" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--bg3);color:var(--text3);font-size:11px;cursor:pointer">수</button>
+            <button class="wd-btn" data-wd="4" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--bg3);color:var(--text3);font-size:11px;cursor:pointer">목</button>
+            <button class="wd-btn" data-wd="5" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--bg3);color:var(--text3);font-size:11px;cursor:pointer">금</button>
+            <button class="wd-btn" data-wd="6" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--bg3);color:var(--text3);font-size:11px;cursor:pointer">토</button>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:6px" id="repeat-desc">반복 없음</div>
+      </div>
+
       <div class="modal-actions">
         <button class="modal-cancel" id="due-date-cancel">취소</button>
         <button class="modal-save" id="due-date-save">저장</button>
@@ -1273,33 +1298,48 @@ function getTodayTasks() {
   const todayStr = new Date().toISOString().slice(0, 10);
   const items = [];
 
+  // 날짜 범위 체크 헬퍼
+  function isToday(startDate, dueDate) {
+    const hasDue   = !!dueDate;
+    const hasStart = !!startDate;
+    if (!hasDue && !hasStart) return false;
+    if (hasDue && hasStart) return todayStr >= startDate && todayStr <= dueDate;
+    if (hasDue)             return dueDate === todayStr;
+    return false;
+  }
+
   state.nodes.forEach(node => {
     if (!node.field) return;
 
     (node.projects || []).forEach(proj => {
-      if (proj.archived) return; // 보관된 프로젝트 제외
+      if (proj.archived) return;
+
+      // ① 프로젝트 자체에 날짜가 설정된 경우 → 오늘 할 일에 표시
+      if (isToday(proj.startDate, proj.dueDate)) {
+        items.push({
+          id: 'proj_' + proj.id,
+          text: '📁 ' + proj.title,
+          done: proj.status === 'done',
+          nodeId: node.id,
+          field: node.field,
+          nodeLabel: node.label,
+          isProject: true,
+          projId: proj.id
+        });
+      }
+
+      // ② 할 일(todo) 날짜 체크 (기존 로직 유지)
       (proj.todos || []).forEach(todo => {
         if (todo.done) return;
-
-        const hasDue   = !!todo.dueDate;
-        const hasStart = !!todo.startDate;
-
-        if (!hasDue && !hasStart) {
-          // 날짜 없는 할 일: 표시 안 함 (날짜 설정된 것만 오늘 할 일에 노출)
-          return;
-        }
-
-        if (hasDue && hasStart) {
-          // 시작~완료 기간: 오늘이 범위 안이면 표시
-          if (todayStr >= todo.startDate && todayStr <= todo.dueDate) {
-            items.push({ id: todo.id, text: todo.text, done: todo.done, nodeId: node.id, field: node.field, nodeLabel: node.label });
-          }
-        } else if (hasDue) {
-          // 완료일만: 정확히 오늘인 경우만 표시
-          if (todo.dueDate === todayStr) {
-            items.push({ id: todo.id, text: todo.text, done: todo.done, nodeId: node.id, field: node.field, nodeLabel: node.label });
-          }
-        }
+        if (!isToday(todo.startDate, todo.dueDate)) return;
+        items.push({
+          id: todo.id,
+          text: todo.text,
+          done: todo.done,
+          nodeId: node.id,
+          field: node.field,
+          nodeLabel: node.label + ' › ' + proj.title
+        });
       });
     });
 
@@ -1309,7 +1349,7 @@ function getTodayTasks() {
     });
   });
 
-  return items.slice(0, 10);
+  return items.slice(0, 20);
 }
 
 function getFieldProgress(field) {
@@ -1407,15 +1447,25 @@ function renderCardView() {
     const el = document.createElement('div');
     el.className = 'today-item';
     el.innerHTML = `
-      <div class="checkbox${t.done?' checked':''}" data-task="${t.id}" data-node="${t.nodeId}"></div>
+      <div class="checkbox${t.done?' checked':''}" data-task="${t.id}" data-node="${t.nodeId}" style="${t.isProject?'border-radius:4px':''}"></div>
       <div class="today-dot" style="background:${f.color}"></div>
       <div class="today-text${t.done?' done':''}">${t.text}</div>
-      <div class="today-tag">${f.label} · ${t.nodeLabel}</div>
+      <div class="today-tag">${f.label} · ${t.nodeLabel}${t.isProject?' · 프로젝트':''}</div>
     `;
     el.querySelector('.checkbox').addEventListener('click', (e) => {
       e.stopPropagation();
-      toggleTask(t.nodeId, t.id);
-      renderCardView();
+      if (t.isProject) {
+        // 프로젝트 상태 토글 (todo ↔ done)
+        const node = getNode(t.nodeId);
+        if (!node) return;
+        const proj = (node.projects || []).find(p => p.id === t.projId);
+        if (!proj) return;
+        proj.status = proj.status === 'done' ? 'todo' : 'done';
+        syncAll();
+      } else {
+        toggleTask(t.nodeId, t.id);
+        renderCardView();
+      }
     });
     el.addEventListener('click', () => openNodePanel(t.nodeId));
     list.appendChild(el);
@@ -2239,6 +2289,40 @@ function deleteField(key) {
   showToast(`"${FIELDS[key]?.label || key}" 분야가 삭제되었습니다`);
 }
 
+/* ── 반복 날짜 계산 헬퍼 ── */
+function _dateAdd(dateStr, days) {
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+function _dateDiff(startStr, endStr) {
+  const s = new Date(startStr + 'T00:00:00');
+  const e = new Date(endStr   + 'T00:00:00');
+  return Math.max(0, Math.round((e - s) / 86400000));
+}
+function _calcNextRepeatDate(proj) {
+  const base = proj.dueDate || proj.startDate;
+  if (!base) return null;
+  const d = new Date(base + 'T00:00:00');
+  if (proj.repeat === 'daily') {
+    d.setDate(d.getDate() + 1);
+  } else if (proj.repeat === 'weekly') {
+    const wds = proj.repeatWeekdays && proj.repeatWeekdays.length > 0
+      ? proj.repeatWeekdays.slice().sort((a,b)=>a-b) : [d.getDay()];
+    // 오늘 이후 가장 가까운 지정 요일
+    let next = new Date(d);
+    for (let i = 1; i <= 14; i++) {
+      next = new Date(d);
+      next.setDate(d.getDate() + i);
+      if (wds.includes(next.getDay())) break;
+    }
+    return next.toISOString().slice(0, 10);
+  } else if (proj.repeat === 'monthly') {
+    d.setMonth(d.getMonth() + 1);
+  }
+  return d.toISOString().slice(0, 10);
+}
+
 /* ── 모든 뷰 동기화 ── */
 function syncAll() {
   saveData();
@@ -2267,8 +2351,56 @@ function openDueDatePicker(target, type, cb) {
   document.getElementById('due-date-title').textContent = titles[type] || '기간 설정';
   document.getElementById('due-start-input').value = target.startDate || '';
   document.getElementById('due-date-input').value = target.dueDate || '';
+
+  // 반복 섹션: 프로젝트에만 표시
+  const repeatSection = document.getElementById('repeat-section');
+  repeatSection.style.display = type === 'project' ? '' : 'none';
+  if (type === 'project') {
+    const cur = target.repeat || 'none';
+    const curWd = target.repeatWeekdays || [];
+    _setRepeatUI(cur, curWd);
+  }
+
   document.getElementById('due-date-overlay').classList.add('open');
 }
+
+/* ── 반복 설정 UI 헬퍼 ── */
+let _curRepeat = 'none';
+let _curRepeatWd = [];
+
+function _setRepeatUI(repeat, weekdays) {
+  _curRepeat = repeat;
+  _curRepeatWd = weekdays ? [...weekdays] : [];
+  document.querySelectorAll('.repeat-btn').forEach(btn => {
+    const active = btn.dataset.repeat === repeat;
+    btn.style.borderColor = active ? 'var(--accent)' : 'var(--border)';
+    btn.style.color       = active ? 'var(--text)'   : 'var(--text3)';
+    btn.style.background  = active ? 'rgba(123,159,224,0.15)' : 'var(--bg3)';
+  });
+  const wdWrap = document.getElementById('repeat-weekday-wrap');
+  wdWrap.style.display = repeat === 'weekly' ? '' : 'none';
+  document.querySelectorAll('.wd-btn').forEach(btn => {
+    const wd = parseInt(btn.dataset.wd);
+    const on = _curRepeatWd.includes(wd);
+    btn.style.borderColor = on ? 'var(--accent)' : 'var(--border)';
+    btn.style.color       = on ? 'var(--text)'   : 'var(--text3)';
+    btn.style.background  = on ? 'rgba(123,159,224,0.2)' : 'var(--bg3)';
+  });
+  const descMap = { none:'반복 없음', daily:'매일 반복', weekly:'매주 반복', monthly:'매월 반복' };
+  document.getElementById('repeat-desc').textContent = descMap[repeat] || '';
+}
+
+document.querySelectorAll('.repeat-btn').forEach(btn => {
+  btn.addEventListener('click', () => _setRepeatUI(btn.dataset.repeat, _curRepeatWd));
+});
+document.querySelectorAll('.wd-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const wd = parseInt(btn.dataset.wd);
+    if (_curRepeatWd.includes(wd)) _curRepeatWd = _curRepeatWd.filter(w => w !== wd);
+    else _curRepeatWd.push(wd);
+    _setRepeatUI('weekly', _curRepeatWd);
+  });
+});
 
 document.getElementById('due-date-cancel').addEventListener('click', () => {
   document.getElementById('due-date-overlay').classList.remove('open');
@@ -2295,9 +2427,16 @@ document.getElementById('due-date-save').addEventListener('click', () => {
   const startVal = document.getElementById('due-start-input').value.trim();
   const endVal   = document.getElementById('due-date-input').value.trim();
 
-  // undefined 대신 null 사용 → JSON.stringify 시 키가 유지됨
   _dueTarget.startDate = startVal || null;
   _dueTarget.dueDate   = endVal   || null;
+
+  // 반복 설정 저장 (repeat-section이 보일 때만, 즉 프로젝트)
+  if (document.getElementById('repeat-section').style.display !== 'none') {
+    _dueTarget.repeat = _curRepeat || 'none';
+    _dueTarget.repeatWeekdays = _curRepeat === 'weekly' ? [..._curRepeatWd] : [];
+    // 반복 프로젝트: 완료 시 다음 날짜로 자동 갱신 플래그
+    _dueTarget.repeatAuto = _curRepeat !== 'none';
+  }
 
   document.getElementById('due-date-overlay').classList.remove('open');
   if (_dueCb) _dueCb();
@@ -2440,6 +2579,12 @@ function buildProjectBlock(proj, node, color, isArchived) {
     ? `<span style="font-size:10px;color:${isDueSoon(proj.dueDate)?'#E07070':'var(--text3)'};margin-left:6px">📅 ${proj.startDate ? proj.startDate + ' ~ ' : ''}${proj.dueDate || ''}</span>`
     : '';
 
+  // 반복 배지
+  const repeatLabel = { daily:'매일', weekly:'매주', monthly:'매월' };
+  const repeatBadge = (proj.repeat && proj.repeat !== 'none')
+    ? `<span style="font-size:10px;background:rgba(123,159,224,0.18);color:var(--accent);padding:1px 7px;border-radius:10px;margin-left:5px">🔁 ${repeatLabel[proj.repeat]||''}</span>`
+    : '';
+
   // 보관된 경우엔 복원/삭제 버튼, 활성 경우엔 기간설정/보관/삭제 버튼
   const actionBtns = isArchived ? `
     <button class="item-action-btn" data-action="restore-proj" title="복원" style="color:var(--c-yt)">↩</button>
@@ -2454,7 +2599,7 @@ function buildProjectBlock(proj, node, color, isArchived) {
     <div class="project-header" style="cursor:pointer${isArchived ? ';opacity:0.8' : ''}">
       <span class="project-toggle open">▶</span>
       <span class="project-name">${proj.title}</span>
-      ${dueStr}
+      ${dueStr}${repeatBadge}
       <span class="project-status" style="background:${statusColor}22;color:${statusColor};margin-left:auto">${statusLabel}</span>
       ${actionBtns}
     </div>
@@ -2478,10 +2623,28 @@ function buildProjectBlock(proj, node, color, isArchived) {
     openDueDatePicker(proj, 'project', () => syncAll());
   });
 
-  // 📦 보관
+  // 📦 보관 (반복 프로젝트는 완료 후 다음 날짜로 자동 갱신)
   const archBtn = header.querySelector('[data-action="archive-proj"]');
   if (archBtn) archBtn.addEventListener('click', e => {
     e.stopPropagation();
+
+    if (proj.repeatAuto && proj.repeat && proj.repeat !== 'none') {
+      // 반복 프로젝트: 보관하지 않고 다음 날짜로 갱신
+      const next = _calcNextRepeatDate(proj);
+      if (next) {
+        const duration = (proj.startDate && proj.dueDate)
+          ? _dateDiff(proj.startDate, proj.dueDate) : 0;
+        proj.startDate = next;
+        proj.dueDate   = duration > 0 ? _dateAdd(next, duration) : next;
+        proj.status    = 'todo';
+        // todos 초기화 (반복마다 새로 시작)
+        (proj.todos || []).forEach(t => { t.done = false; (t.plans||[]).forEach(p => p.done = false); });
+        syncAll();
+        showToast(`🔁 "${proj.title}" 다음 반복으로 갱신되었습니다 (${proj.startDate})`);
+        return;
+      }
+    }
+
     proj.archived = true;
     proj.archivedAt = new Date().toISOString().slice(0, 10);
     syncAll();
