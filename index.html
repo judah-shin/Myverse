@@ -2330,6 +2330,47 @@ function _calcNextRepeatDate(proj) {
   return d.toISOString().slice(0, 10);
 }
 
+/* ── 반복 프로젝트 자동 갱신 (앱 실행 시 호출) ── */
+function autoAdvanceRepeatProjects() {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  let changed = false;
+
+  state.nodes.forEach(node => {
+    (node.projects || []).forEach(proj => {
+      // 반복 설정이 없거나, 보관됐거나, 날짜 없으면 skip
+      if (!proj.repeatAuto) return;
+      if (!proj.repeat || proj.repeat === 'none') return;
+      if (proj.archived) return;
+      const base = proj.dueDate || proj.startDate;
+      if (!base) return;
+
+      // 완료일(or 시작일)이 오늘보다 과거 → 다음 주기로 계속 밀어냄
+      let safety = 0;
+      while ((proj.dueDate || proj.startDate) < todayStr && safety < 365) {
+        safety++;
+        const next = _calcNextRepeatDate(proj);
+        if (!next) break;
+        const duration = (proj.startDate && proj.dueDate)
+          ? _dateDiff(proj.startDate, proj.dueDate) : 0;
+        proj.startDate = next;
+        proj.dueDate   = duration > 0 ? _dateAdd(next, duration) : next;
+        proj.status    = 'todo';
+        // 할일·계획 체크 초기화
+        (proj.todos || []).forEach(t => {
+          t.done = false;
+          (t.plans || []).forEach(p => { p.done = false; });
+        });
+        changed = true;
+      }
+    });
+  });
+
+  if (changed) {
+    saveData();
+    showToast('🔁 반복 프로젝트가 새 주기로 자동 갱신되었습니다');
+  }
+}
+
 /* ── 모든 뷰 동기화 ── */
 function syncAll() {
   saveData();
@@ -4099,6 +4140,7 @@ document.getElementById('yt-add-to-pillar-btn').addEventListener('click', () => 
 if (!state.ytChannel) state.ytChannel = { videos:[], ideas:[], notes:'', strategyNotes:'' };
 
 /* ─── INIT ─── */
+autoAdvanceRepeatProjects(); // 반복 프로젝트 자동 갱신 (앱 실행 시)
 syncFields();
 Object.keys(FIELDS).forEach(k => activeFilters.add(k));
 renderCardView();
