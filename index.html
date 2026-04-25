@@ -1691,6 +1691,7 @@ function rebuildVirtualNodes() {
     );
 
     activeProjects.forEach((proj, i) => {
+      const vnId = `vn_proj_${proj.id}`;
       const px = projPositions[i].x, py = projPositions[i].y;
       virtualNodes.push({
         id: vnId,
