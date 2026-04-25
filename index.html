@@ -1679,18 +1679,18 @@ function rebuildVirtualNodes() {
 
     // 분야 노드 → 프로젝트 가상 노드 (부모방향 기준 ±50° 부채꼴)
     const projects = node.projects || [];
-    if (!node.field || projects.length === 0) return;
+    const activeProjects = projects.filter(p => !p.archived); // 보관 제외
+    if (!node.field || activeProjects.length === 0) return;
 
     const projPositions = fanPositions(
       node.x, node.y,
-      me.x, me.y,          // 조부모 = 루트
-      projects.length,
-      200,                  // 분야→프로젝트 거리
-      Math.min(90, projects.length <= 1 ? 0 : 80)  // 최대 90°
+      me.x, me.y,
+      activeProjects.length,
+      200,
+      Math.min(90, activeProjects.length <= 1 ? 0 : 80)
     );
 
-    projects.forEach((proj, i) => {
-      const vnId = `vn_proj_${proj.id}`;
+    activeProjects.forEach((proj, i) => {
       const px = projPositions[i].x, py = projPositions[i].y;
       virtualNodes.push({
         id: vnId,
