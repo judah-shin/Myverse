@@ -1827,8 +1827,8 @@ function stopSim() {
 
 function _simStep() {
   if (!_simRunning) return;
-  _simAlpha *= 0.92;   // 감쇠
-  if (_simAlpha < 0.005) { _simAlpha = 0; _simRunning = false; drawGraph(); return; }
+  _simAlpha *= 0.95;   // 감쇠 (천천히 식어야 겹침 해소 완료)
+  if (_simAlpha < 0.002) { _simAlpha = 0; _simRunning = false; drawGraph(); return; }
 
   _applyForces(_simAlpha);
   drawGraph();
@@ -1836,21 +1836,18 @@ function _simStep() {
 }
 
 function _applyForces(alpha) {
-  const fieldIds  = Object.keys(FIELDS);
-  const rootNode  = state.nodes.find(n => n.isRoot);
-  const rootX     = rootNode ? rootNode.x : 0;
-  const rootY     = rootNode ? rootNode.y : 0;
+  const fieldIds = Object.keys(FIELDS);
+  const rootNode = state.nodes.find(n => n.isRoot);
+  const rootX    = rootNode ? rootNode.x : 0;
+  const rootY    = rootNode ? rootNode.y : 0;
 
-  // 속도 맵 (노드id → {vx, vy})
+  // 속도 맵
   const vel = {};
-  const allNodes = [
-    ...state.nodes.filter(n => !n.isRoot),
-    ...virtualNodes
-  ];
-
+  const realNodes = state.nodes.filter(n => !n.isRoot);
+  const allNodes  = [...realNodes, ...virtualNodes];
   allNodes.forEach(n => { vel[n.id] = { vx: 0, vy: 0 }; });
 
-  // ① 척력: 모든 노드 쌍이 서로 밀어냄
+  // ① 척력: 노드 반경 + 여유 거리 기반으로 충분히 밀어냄
   for (let i = 0; i < allNodes.length; i++) {
     for (let j = i + 1; j < allNodes.length; j++) {
       const a = allNodes[i], b = allNodes[j];
@@ -1858,9 +1855,12 @@ function _applyForces(alpha) {
       const dist = Math.hypot(dx, dy) || 0.1;
       const rA = a.type ? getNodeRadius(a) : (fieldIds.includes(a.id) ? 28 : 22);
       const rB = b.type ? getNodeRadius(b) : (fieldIds.includes(b.id) ? 28 : 22);
-      const minD = rA + rB + 55;
+      // 겹침 방지 최소 거리 + 넉넉한 여백
+      const minD = rA + rB + 80;
       if (dist < minD) {
-        const force = ((minD - dist) / minD) * 6 * alpha;
+        // 겹칠수록 강하게 밀어냄 (제곱 비례)
+        const overlap = (minD - dist) / minD;
+        const force   = overlap * overlap * 20 * alpha;
         const fx = (dx / dist) * force, fy = (dy / dist) * force;
         vel[a.id].vx += fx; vel[a.id].vy += fy;
         vel[b.id].vx -= fx; vel[b.id].vy -= fy;
@@ -1868,77 +1868,77 @@ function _applyForces(alpha) {
     }
   }
 
-  // ② 인력: 연결된 노드끼리 적정 거리 유지
-  // 실제 노드 엣지 (나 ↔ 분야)
-  state.nodes.forEach(node => {
-    if (node.isRoot) return;
+  // ② 스프링 인력: 연결된 실제 노드끼리 (너무 가까워도 밀고, 너무 멀면 당김)
+  realNodes.forEach(node => {
     (node.connectedIds || []).forEach(cid => {
       const target = getNode(cid);
       if (!target || target.isRoot) return;
+      if (!vel[node.id] || !vel[target.id]) return;
       const dx = target.x - node.x, dy = target.y - node.y;
       const dist = Math.hypot(dx, dy) || 0.1;
-      const rest = fieldIds.includes(node.id) ? 180 : 240;
-      const force = (dist - rest) * 0.03 * alpha;
+      const rest  = 220; // 목표 거리
+      // dist > rest → 당김, dist < rest → 밀어냄 (양방향 스프링)
+      const force = (dist - rest) * 0.025 * alpha;
       const fx = (dx / dist) * force, fy = (dy / dist) * force;
-      if (vel[node.id])   { vel[node.id].vx   += fx; vel[node.id].vy   += fy; }
-      if (vel[target.id]) { vel[target.id].vx  -= fx; vel[target.id].vy -= fy; }
+      vel[node.id].vx   += fx; vel[node.id].vy   += fy;
+      vel[target.id].vx -= fx; vel[target.id].vy -= fy;
     });
   });
 
-  // 가상 노드 엣지 인력 (parent ↔ child)
+  // ③ 가상 노드 스프링: parent ↔ child (단방향 인력만, 부모는 이동 최소화)
   virtualNodes.forEach(vn => {
+    if (!vel[vn.id]) return;
     const parentPos = getNodePos(vn.parentId);
     if (!parentPos) return;
-    const dx = vn.x - parentPos.x, dy = vn.y - parentPos.y;
-    const dist = Math.hypot(dx, dy) || 0.1;
-    const rest = vn.type === 'project' ? 200 : vn.type === 'todo' ? 160 : 130;
-    const force = (dist - rest) * 0.04 * alpha;
-    const fx = (dx / dist) * force, fy = (dy / dist) * force;
-    if (vel[vn.id]) { vel[vn.id].vx -= fx; vel[vn.id].vy -= fy; }
-    // 부모(실제 노드)도 살짝 당김
-    const parentNode = state.nodes.find(n => n.id === vn.parentId);
-    if (parentNode && vel[parentNode.id]) {
-      vel[parentNode.id].vx += fx * 0.15;
-      vel[parentNode.id].vy += fy * 0.15;
+    const dx   = vn.x - parentPos.x, dy = vn.y - parentPos.y;
+    const dist  = Math.hypot(dx, dy) || 0.1;
+    const rest  = vn.type === 'project' ? 210 : vn.type === 'todo' ? 170 : 140;
+    if (dist > rest) {
+      // 너무 멀면 당겨오기만
+      const force = (dist - rest) * 0.035 * alpha;
+      vel[vn.id].vx -= (dx / dist) * force;
+      vel[vn.id].vy -= (dy / dist) * force;
     }
   });
 
-  // ③ 중심 인력: 루트 주변으로 천천히 수렴
-  allNodes.forEach(n => {
-    if (!vel[n.id]) return;
-    const dx = rootX - n.x, dy = rootY - n.y;
-    vel[n.id].vx += dx * 0.003 * alpha;
-    vel[n.id].vy += dy * 0.003 * alpha;
-  });
+  // ④ 중심 인력 제거 → 대신 루트와 분야 노드 사이 스프링만 적용
+  //    (중심 인력이 "모이는" 현상의 주원인이었음)
 
-  // ④ 속도 적용 (드래그 중인 노드는 고정)
+  // ⑤ 속도 클램프 + 적용 (드래그 중인 노드는 고정)
+  const MAX_VEL = 18;
   allNodes.forEach(n => {
     if (!vel[n.id]) return;
-    const isDragged = _dragNode && _dragNode.node.id === n.id;
-    if (isDragged) return;
+    if (_dragNode && _dragNode.node.id === n.id) return;
+    // 속도 상한
+    const speed = Math.hypot(vel[n.id].vx, vel[n.id].vy);
+    if (speed > MAX_VEL) {
+      vel[n.id].vx = (vel[n.id].vx / speed) * MAX_VEL;
+      vel[n.id].vy = (vel[n.id].vy / speed) * MAX_VEL;
+    }
     n.x += vel[n.id].vx;
     n.y += vel[n.id].vy;
   });
 }
 
-// 정적 충돌 해소 (즉시 1회, 펼칠 때 초기 배치용)
+// 정적 충돌 해소 — 겹침이 완전히 없어질 때까지 반복 (펼칠 때 초기 배치)
 function resolveCollisions() {
-  for (let iter = 0; iter < 8; iter++) {
+  const fieldIds = Object.keys(FIELDS);
+  for (let iter = 0; iter < 60; iter++) {
     let moved = false;
     const allNodes = [...state.nodes.filter(n => !n.isRoot), ...virtualNodes];
     for (let i = 0; i < allNodes.length; i++) {
       for (let j = i + 1; j < allNodes.length; j++) {
         const a = allNodes[i], b = allNodes[j];
-        const dx = a.x - b.x, dy = a.y - b.y;
+        const dx = a.x - b.x || (Math.random() - 0.5) * 0.1;
+        const dy = a.y - b.y || (Math.random() - 0.5) * 0.1;
         const dist = Math.hypot(dx, dy) || 0.01;
-        const fieldIds = Object.keys(FIELDS);
         const rA = a.type ? getNodeRadius(a) : (fieldIds.includes(a.id) ? 28 : 22);
         const rB = b.type ? getNodeRadius(b) : (fieldIds.includes(b.id) ? 28 : 22);
-        const minD = rA + rB + 40;
+        const minD = rA + rB + 80;
         if (dist < minD) {
-          const push = (minD - dist) * 0.5;
-          a.x += dx / dist * push; a.y += dy / dist * push;
-          b.x -= dx / dist * push; b.y -= dy / dist * push;
+          const push = (minD - dist) * 0.55;
+          a.x += (dx / dist) * push; a.y += (dy / dist) * push;
+          b.x -= (dx / dist) * push; b.y -= (dy / dist) * push;
           moved = true;
         }
       }
