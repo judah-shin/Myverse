@@ -187,6 +187,37 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .save-btn:disabled { opacity: .4; cursor: default; }
 .capture-hint-row { padding: 8px 16px; font-size: 11px; color: var(--text3); display: flex; gap: 16px; border-top: 1px solid var(--border); }
 
+/* ─── Tag UI ─── */
+.tag-area { display:flex;flex-wrap:wrap;gap:5px;align-items:center;padding:6px 12px 8px;border-top:1px solid var(--border); }
+.tag-chip { display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:500;background:rgba(123,159,224,0.13);color:var(--accent);border:1px solid rgba(123,159,224,0.25);cursor:default; }
+.tag-chip .tag-del { background:none;border:none;cursor:pointer;color:var(--text3);font-size:10px;padding:0 1px;line-height:1;opacity:.7; }
+.tag-chip .tag-del:hover { opacity:1;color:#E07070; }
+.tag-input-wrap { display:flex;align-items:center;gap:4px;flex:1;min-width:80px; }
+.tag-input { background:none;border:none;outline:none;font-size:11px;color:var(--text2);width:100%;font-family:inherit; }
+.tag-input::placeholder { color:var(--text3); }
+.tag-suggest { position:absolute;z-index:50;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;min-width:140px;box-shadow:0 8px 24px rgba(0,0,0,0.4);overflow:hidden; }
+.tag-suggest-item { padding:7px 12px;font-size:12px;color:var(--text2);cursor:pointer; }
+.tag-suggest-item:hover { background:var(--bg3);color:var(--text); }
+
+/* ─── Search Modal ─── */
+.search-modal { width:580px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r3);overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,0.6);animation:slideDown .2s cubic-bezier(.4,0,.2,1); }
+.search-input-wrap { display:flex;align-items:center;gap:10px;padding:14px 18px; }
+.search-icon { font-size:16px;color:var(--text3); }
+.search-main-input { flex:1;background:none;border:none;outline:none;font-size:15px;color:var(--text);font-family:inherit; }
+.search-main-input::placeholder { color:var(--text3); }
+.search-divider { height:1px;background:var(--border); }
+.search-results { max-height:360px;overflow-y:auto; }
+.search-result-item { display:flex;align-items:center;gap:10px;padding:10px 18px;cursor:pointer;transition:background .12s;border-bottom:1px solid var(--border); }
+.search-result-item:hover { background:var(--bg3); }
+.search-result-item:last-child { border-bottom:none; }
+.search-result-dot { width:8px;height:8px;border-radius:50%;flex-shrink:0; }
+.search-result-info { flex:1;min-width:0; }
+.search-result-title { font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.search-result-meta { font-size:11px;color:var(--text3);margin-top:2px; }
+.search-result-tags { display:flex;gap:4px;flex-wrap:wrap;margin-top:4px; }
+.search-empty { padding:32px;text-align:center;color:var(--text3);font-size:13px; }
+.search-hint-row { padding:8px 16px;font-size:11px;color:var(--text3);display:flex;gap:16px;border-top:1px solid var(--border); }
+
 /* ─── Toast ─── */
 .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(60px); background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--r2); padding: 10px 20px; font-size: 13px; color: var(--text); z-index: 200; transition: transform .3s cubic-bezier(.4,0,.2,1); pointer-events: none; }
 .toast.show { transform: translateX(-50%) translateY(0); }
@@ -912,16 +943,22 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   </div><!-- /main -->
 </div><!-- /app -->
 
-<!-- ⌘K 빠른 캡처 모달 -->
+<!-- ⌘K 통합 모달 (검색 + 빠른 캡처) -->
 <div class="overlay" id="capture-overlay">
-  <div class="capture-modal">
-    <input class="capture-input" id="capture-input" placeholder="지금 생각나는 것을 입력하세요..." autocomplete="off">
-    <div class="capture-divider"></div>
-    <div class="capture-footer" id="capture-footer-chips">
-      <button class="save-btn" id="capture-save" disabled>저장</button>
+  <div class="search-modal" id="search-modal-inner">
+    <!-- 검색 입력 -->
+    <div class="search-input-wrap">
+      <span class="search-icon" id="search-mode-icon">🔍</span>
+      <input class="search-main-input" id="capture-input" placeholder="검색하거나 새 프로젝트를 입력하세요..." autocomplete="off">
+      <button id="capture-mode-toggle" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);cursor:pointer;white-space:nowrap">+ 프로젝트 추가</button>
     </div>
-    <div class="capture-hint-row">
-      <span>Enter 저장</span><span>Esc 닫기</span>
+    <div class="search-divider"></div>
+    <!-- 검색 결과 -->
+    <div class="search-results" id="search-results-list"></div>
+    <!-- 캡처 모드: 분야 선택 -->
+    <div id="capture-footer-chips" style="display:none;padding:10px 14px;flex-wrap:wrap;gap:6px;align-items:center;border-top:1px solid var(--border)"></div>
+    <div class="search-hint-row" id="search-hint-row">
+      <span>↑↓ 탐색</span><span>Enter 열기</span><span>Esc 닫기</span>
     </div>
   </div>
 </div>
@@ -1767,38 +1804,137 @@ function getNodePos(id) {
 /* ── 충돌 방지: 가상 노드 배치 후 실제 노드들을 밀어내기 ──
    확장된 가상 노드 클러스터의 점유 영역을 계산하고
    겹치는 실제 노드를 반대 방향으로 밀어냄 */
-function resolveCollisions() {
-  const PUSH_ITERS = 20;
+/* ═══════════════════════════════════════════════
+   PHYSICS SIMULATION (Force-Directed)
+   ═══════════════════════════════════════════════ */
+let _simRunning = false;
+let _simAlpha   = 0;       // 시뮬레이션 에너지 (1→0으로 감쇠)
+let _simRaf     = null;
+let _dragNode   = null;    // 현재 드래그 중인 노드 {node|vn, offsetX, offsetY}
 
-  for (let iter = 0; iter < PUSH_ITERS; iter++) {
-    let moved = false;
+// 시뮬레이션 시작 (노드 펼치기/드래그 시 호출)
+function startSim(alpha = 1) {
+  _simAlpha = Math.max(_simAlpha, alpha);
+  if (_simRunning) return;
+  _simRunning = true;
+  _simStep();
+}
 
-    // 실제 노드 ↔ 가상 노드 충돌
-    state.nodes.forEach(rn => {
-      if (rn.isRoot) return;
-      virtualNodes.forEach(vn => {
-        const dx = rn.x - vn.x, dy = rn.y - vn.y;
-        const dist = Math.hypot(dx, dy) || 0.01;
-        const rnR = Object.keys(FIELDS).includes(rn.id) ? 28 : 22;
-        const vnR = getNodeRadius(vn);
-        const minD = rnR + vnR + 50;
-        if (dist < minD) {
-          const push = (minD - dist) * 0.6;
-          rn.x += dx / dist * push;
-          rn.y += dy / dist * push;
-          moved = true;
-        }
-      });
+function stopSim() {
+  _simRunning = false;
+  if (_simRaf) { cancelAnimationFrame(_simRaf); _simRaf = null; }
+}
+
+function _simStep() {
+  if (!_simRunning) return;
+  _simAlpha *= 0.92;   // 감쇠
+  if (_simAlpha < 0.005) { _simAlpha = 0; _simRunning = false; drawGraph(); return; }
+
+  _applyForces(_simAlpha);
+  drawGraph();
+  _simRaf = requestAnimationFrame(_simStep);
+}
+
+function _applyForces(alpha) {
+  const fieldIds  = Object.keys(FIELDS);
+  const rootNode  = state.nodes.find(n => n.isRoot);
+  const rootX     = rootNode ? rootNode.x : 0;
+  const rootY     = rootNode ? rootNode.y : 0;
+
+  // 속도 맵 (노드id → {vx, vy})
+  const vel = {};
+  const allNodes = [
+    ...state.nodes.filter(n => !n.isRoot),
+    ...virtualNodes
+  ];
+
+  allNodes.forEach(n => { vel[n.id] = { vx: 0, vy: 0 }; });
+
+  // ① 척력: 모든 노드 쌍이 서로 밀어냄
+  for (let i = 0; i < allNodes.length; i++) {
+    for (let j = i + 1; j < allNodes.length; j++) {
+      const a = allNodes[i], b = allNodes[j];
+      const dx = a.x - b.x, dy = a.y - b.y;
+      const dist = Math.hypot(dx, dy) || 0.1;
+      const rA = a.type ? getNodeRadius(a) : (fieldIds.includes(a.id) ? 28 : 22);
+      const rB = b.type ? getNodeRadius(b) : (fieldIds.includes(b.id) ? 28 : 22);
+      const minD = rA + rB + 55;
+      if (dist < minD) {
+        const force = ((minD - dist) / minD) * 6 * alpha;
+        const fx = (dx / dist) * force, fy = (dy / dist) * force;
+        vel[a.id].vx += fx; vel[a.id].vy += fy;
+        vel[b.id].vx -= fx; vel[b.id].vy -= fy;
+      }
+    }
+  }
+
+  // ② 인력: 연결된 노드끼리 적정 거리 유지
+  // 실제 노드 엣지 (나 ↔ 분야)
+  state.nodes.forEach(node => {
+    if (node.isRoot) return;
+    (node.connectedIds || []).forEach(cid => {
+      const target = getNode(cid);
+      if (!target || target.isRoot) return;
+      const dx = target.x - node.x, dy = target.y - node.y;
+      const dist = Math.hypot(dx, dy) || 0.1;
+      const rest = fieldIds.includes(node.id) ? 180 : 240;
+      const force = (dist - rest) * 0.03 * alpha;
+      const fx = (dx / dist) * force, fy = (dy / dist) * force;
+      if (vel[node.id])   { vel[node.id].vx   += fx; vel[node.id].vy   += fy; }
+      if (vel[target.id]) { vel[target.id].vx  -= fx; vel[target.id].vy -= fy; }
     });
+  });
 
-    // 실제 노드 ↔ 실제 노드 충돌 (비루트)
-    const realArr = state.nodes.filter(n => !n.isRoot);
-    for (let i = 0; i < realArr.length; i++) {
-      for (let j = i + 1; j < realArr.length; j++) {
-        const a = realArr[i], b = realArr[j];
+  // 가상 노드 엣지 인력 (parent ↔ child)
+  virtualNodes.forEach(vn => {
+    const parentPos = getNodePos(vn.parentId);
+    if (!parentPos) return;
+    const dx = vn.x - parentPos.x, dy = vn.y - parentPos.y;
+    const dist = Math.hypot(dx, dy) || 0.1;
+    const rest = vn.type === 'project' ? 200 : vn.type === 'todo' ? 160 : 130;
+    const force = (dist - rest) * 0.04 * alpha;
+    const fx = (dx / dist) * force, fy = (dy / dist) * force;
+    if (vel[vn.id]) { vel[vn.id].vx -= fx; vel[vn.id].vy -= fy; }
+    // 부모(실제 노드)도 살짝 당김
+    const parentNode = state.nodes.find(n => n.id === vn.parentId);
+    if (parentNode && vel[parentNode.id]) {
+      vel[parentNode.id].vx += fx * 0.15;
+      vel[parentNode.id].vy += fy * 0.15;
+    }
+  });
+
+  // ③ 중심 인력: 루트 주변으로 천천히 수렴
+  allNodes.forEach(n => {
+    if (!vel[n.id]) return;
+    const dx = rootX - n.x, dy = rootY - n.y;
+    vel[n.id].vx += dx * 0.003 * alpha;
+    vel[n.id].vy += dy * 0.003 * alpha;
+  });
+
+  // ④ 속도 적용 (드래그 중인 노드는 고정)
+  allNodes.forEach(n => {
+    if (!vel[n.id]) return;
+    const isDragged = _dragNode && _dragNode.node.id === n.id;
+    if (isDragged) return;
+    n.x += vel[n.id].vx;
+    n.y += vel[n.id].vy;
+  });
+}
+
+// 정적 충돌 해소 (즉시 1회, 펼칠 때 초기 배치용)
+function resolveCollisions() {
+  for (let iter = 0; iter < 8; iter++) {
+    let moved = false;
+    const allNodes = [...state.nodes.filter(n => !n.isRoot), ...virtualNodes];
+    for (let i = 0; i < allNodes.length; i++) {
+      for (let j = i + 1; j < allNodes.length; j++) {
+        const a = allNodes[i], b = allNodes[j];
         const dx = a.x - b.x, dy = a.y - b.y;
         const dist = Math.hypot(dx, dy) || 0.01;
-        const minD = 100;
+        const fieldIds = Object.keys(FIELDS);
+        const rA = a.type ? getNodeRadius(a) : (fieldIds.includes(a.id) ? 28 : 22);
+        const rB = b.type ? getNodeRadius(b) : (fieldIds.includes(b.id) ? 28 : 22);
+        const minD = rA + rB + 40;
         if (dist < minD) {
           const push = (minD - dist) * 0.5;
           a.x += dx / dist * push; a.y += dy / dist * push;
@@ -1807,24 +1943,6 @@ function resolveCollisions() {
         }
       }
     }
-
-    // 가상 노드 ↔ 가상 노드 충돌
-    for (let i = 0; i < virtualNodes.length; i++) {
-      for (let j = i + 1; j < virtualNodes.length; j++) {
-        const a = virtualNodes[i], b = virtualNodes[j];
-        if (a.parentId === b.parentId) continue; // 같은 부모는 fanPositions가 이미 처리
-        const dx = a.x - b.x, dy = a.y - b.y;
-        const dist = Math.hypot(dx, dy) || 0.01;
-        const minD = getNodeRadius(a) + getNodeRadius(b) + 30;
-        if (dist < minD) {
-          const push = (minD - dist) * 0.4;
-          a.x += dx / dist * push; a.y += dy / dist * push;
-          b.x -= dx / dist * push; b.y -= dy / dist * push;
-          moved = true;
-        }
-      }
-    }
-
     if (!moved) break;
   }
 }
@@ -2033,42 +2151,85 @@ function bindGraphEvents() {
   // ── 더블클릭 감지용 ──
   let lastClickTime = 0, lastClickId = null;
 
-  canvas.addEventListener('mousedown', e => { isDragging = true; lastMouse = { x: e.clientX, y: e.clientY }; });
+  // ── 마우스 다운: 노드 드래그 or 캔버스 팬 판별 ──
+  canvas.addEventListener('mousedown', e => {
+    const rect = canvas.getBoundingClientRect();
+    const w = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
+    const hit = findNode(w.x, w.y);
+    if (hit) {
+      // 노드 위에서 누름 → 드래그 준비
+      const node = hit._real
+        ? state.nodes.find(n => n.id === hit.id)
+        : virtualNodes.find(v => v.id === hit.id);
+      if (node) {
+        _dragNode = { node, startX: w.x, startY: w.y, moved: false };
+        canvas.style.cursor = 'grabbing';
+        stopSim();
+        e.stopPropagation();
+      }
+    } else {
+      // 빈 공간 → 캔버스 팬
+      isDragging = true;
+    }
+    lastMouse = { x: e.clientX, y: e.clientY };
+  });
 
   canvas.addEventListener('mouseup', e => {
+    if (_dragNode) {
+      const wasMoved = _dragNode.moved;
+      _dragNode = null;
+      canvas.style.cursor = 'grab';
+      startSim(0.4);   // 드래그 후 주변 정착
+      if (!wasMoved) {
+        // 클릭으로 판정 → 더블클릭 체크
+        const rect = canvas.getBoundingClientRect();
+        const w = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
+        const hit = findNode(w.x, w.y);
+        if (hit) {
+          const now = Date.now();
+          const isDouble = (now - lastClickTime < 350) && lastClickId === hit.id;
+          lastClickTime = now; lastClickId = hit.id;
+          if (isDouble) handleExpand(hit);
+          else openNodePanel(hit._real ? hit.id : (hit.refNodeId || hit.id));
+        }
+      }
+      return;
+    }
     if (!isDragging) return;
     const dx = e.clientX - lastMouse.x, dy = e.clientY - lastMouse.y;
     isDragging = false;
-    if (Math.abs(dx) >= 5 || Math.abs(dy) >= 5) return; // 드래그면 무시
-
+    if (Math.abs(dx) >= 5 || Math.abs(dy) >= 5) return;
+    // 팬 중 클릭
     const rect = canvas.getBoundingClientRect();
     const w = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
     const hit = findNode(w.x, w.y);
     if (!hit) return;
-
     const now = Date.now();
     const isDouble = (now - lastClickTime < 350) && lastClickId === hit.id;
-    lastClickTime = now;
-    lastClickId = hit.id;
-
-    if (isDouble) {
-      // ── 더블클릭: 펼치기/접기 ──
-      handleExpand(hit);
-    } else {
-      // ── 단일클릭: 패널 열기 ──
-      const realId = hit._real ? hit.id : (hit.refNodeId || hit.id);
-      openNodePanel(realId);
-    }
+    lastClickTime = now; lastClickId = hit.id;
+    if (isDouble) handleExpand(hit);
+    else openNodePanel(hit._real ? hit.id : (hit.refNodeId || hit.id));
   });
 
   canvas.addEventListener('mousemove', e => {
     const rect = canvas.getBoundingClientRect();
+    const w = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
+
+    if (_dragNode) {
+      // 노드 드래그
+      _dragNode.node.x = w.x;
+      _dragNode.node.y = w.y;
+      _dragNode.moved = true;
+      canvas.style.cursor = 'grabbing';
+      drawGraph();
+      return;
+    }
+
     if (isDragging) {
       camX += e.clientX - lastMouse.x;
       camY += e.clientY - lastMouse.y;
       lastMouse = { x: e.clientX, y: e.clientY };
     }
-    const w = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
     const hit = findNode(w.x, w.y);
     hoveredNode = hit ? hit.id : null;
     canvas.style.cursor = hit ? 'pointer' : (isDragging ? 'grabbing' : 'grab');
@@ -2087,23 +2248,51 @@ function bindGraphEvents() {
     drawGraph();
   }, { passive: false });
 
-  // ── 터치 지원 (더블탭도 처리) ──
+  // ── 터치 지원 (노드 드래그 + 더블탭 + 핀치 줌) ──
   let lastTouch = null, lastDist = null;
   let lastTapTime = 0, lastTapId = null;
+  let _touchDragNode = null;
 
   canvas.addEventListener('touchstart', e => {
     e.preventDefault();
-    if (e.touches.length === 1) lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    if (e.touches.length === 2) lastDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-  });
+    if (e.touches.length === 1) {
+      const rect = canvas.getBoundingClientRect();
+      const t = e.touches[0];
+      lastTouch = { x: t.clientX, y: t.clientY };
+      const w = screenToWorld(t.clientX - rect.left, t.clientY - rect.top);
+      const hit = findNode(w.x, w.y);
+      if (hit) {
+        const node = hit._real
+          ? state.nodes.find(n => n.id === hit.id)
+          : virtualNodes.find(v => v.id === hit.id);
+        if (node) { _touchDragNode = { node, moved: false }; stopSim(); }
+      }
+    }
+    if (e.touches.length === 2) {
+      _touchDragNode = null;
+      lastDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    }
+  }, { passive: false });
 
   canvas.addEventListener('touchmove', e => {
     e.preventDefault();
     if (e.touches.length === 1 && lastTouch) {
-      camX += e.touches[0].clientX - lastTouch.x;
-      camY += e.touches[0].clientY - lastTouch.y;
-      lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      drawGraph();
+      const rect = canvas.getBoundingClientRect();
+      const t = e.touches[0];
+      if (_touchDragNode) {
+        // 노드 드래그
+        const w = screenToWorld(t.clientX - rect.left, t.clientY - rect.top);
+        _touchDragNode.node.x = w.x;
+        _touchDragNode.node.y = w.y;
+        _touchDragNode.moved = true;
+        drawGraph();
+      } else {
+        // 캔버스 팬
+        camX += t.clientX - lastTouch.x;
+        camY += t.clientY - lastTouch.y;
+        drawGraph();
+      }
+      lastTouch = { x: t.clientX, y: t.clientY };
     }
     if (e.touches.length === 2 && lastDist) {
       const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
@@ -2114,7 +2303,24 @@ function bindGraphEvents() {
 
   canvas.addEventListener('touchend', e => {
     e.preventDefault();
-    if (e.changedTouches.length === 1 && lastTouch) {
+    if (_touchDragNode) {
+      const wasMoved = _touchDragNode.moved;
+      _touchDragNode = null;
+      startSim(0.4);
+      if (!wasMoved && e.changedTouches.length === 1) {
+        const rect = canvas.getBoundingClientRect();
+        const t = e.changedTouches[0];
+        const w = screenToWorld(t.clientX - rect.left, t.clientY - rect.top);
+        const hit = findNode(w.x, w.y);
+        if (hit) {
+          const now = Date.now();
+          const isDouble = (now - lastTapTime < 400) && lastTapId === hit.id;
+          lastTapTime = now; lastTapId = hit.id;
+          if (isDouble) handleExpand(hit);
+          else openNodePanel(hit._real ? hit.id : (hit.refNodeId || hit.id));
+        }
+      }
+    } else if (e.changedTouches.length === 1 && lastTouch) {
       const rect = canvas.getBoundingClientRect();
       const t = e.changedTouches[0];
       const dx = Math.abs(t.clientX - lastTouch.x), dy = Math.abs(t.clientY - lastTouch.y);
@@ -2131,11 +2337,12 @@ function bindGraphEvents() {
       }
     }
     lastTouch = null; lastDist = null;
-  });
+  }, { passive: false });
 
   document.getElementById('zoom-in').addEventListener('click', () => { camScale = Math.min(3, camScale * 1.2); drawGraph(); });
   document.getElementById('zoom-out').addEventListener('click', () => { camScale = Math.max(0.3, camScale * 0.8); drawGraph(); });
   document.getElementById('zoom-reset').addEventListener('click', () => {
+    stopSim(); _dragNode = null;
     camX = canvas.width / 2; camY = canvas.height / 2; camScale = 1;
     expandedNodes.clear(); virtualNodes = [];
     drawGraph();
@@ -2151,16 +2358,17 @@ function handleExpand(hit) {
   }
   if (expandedNodes.has(hit.id)) {
     collapseNode(hit.id);
-    // 접을 때: 저장된 원본 위치로 복원
     restoreNodePositions();
+    rebuildVirtualNodes();
+    resolveCollisions();
+    startSim(0.6);      // 접을 때: 살짝 정착 애니메이션
   } else {
-    // 펼치기 전 실제 노드 위치 스냅샷 저장
     saveNodePositions();
     expandedNodes.add(hit.id);
+    rebuildVirtualNodes();
+    resolveCollisions();
+    startSim(1.0);      // 펼칠 때: 풀 에너지로 시뮬레이션
   }
-  rebuildVirtualNodes();
-  resolveCollisions();
-  drawGraph();
 }
 
 function collapseNode(id) {
@@ -2858,6 +3066,9 @@ function buildProjectBlock(proj, node, color, isArchived) {
     body.appendChild(addTodoBtn);
   }
 
+  // 태그 영역 (활성/보관 모두 표시, 편집은 활성만)
+  block.appendChild(renderTagArea(block, proj, isArchived));
+
   return block;
 }
 
@@ -3007,21 +3218,274 @@ document.getElementById('panel-close').addEventListener('click', () => {
   currentNodeId = null;
 });
 
+
 /* ═══════════════════════════════════════════════
-   QUICK CAPTURE ⌘K
+   TAG SYSTEM
    ═══════════════════════════════════════════════ */
-let selectedField = 'work';
+
+// 전체 사용된 태그 목록 수집
+function getAllTags() {
+  const set = new Set();
+  state.nodes.forEach(node => {
+    (node.projects || []).forEach(proj => {
+      (proj.tags || []).forEach(t => set.add(t));
+    });
+  });
+  return [...set].sort();
+}
+
+// 프로젝트 블록 하단에 태그 UI 렌더
+function renderTagArea(block, proj, isArchived) {
+  const area = document.createElement('div');
+  area.className = 'tag-area';
+
+  function refresh() {
+    area.innerHTML = '';
+
+    // 기존 태그 칩
+    (proj.tags || []).forEach(tag => {
+      const chip = document.createElement('span');
+      chip.className = 'tag-chip';
+      chip.innerHTML = `#${tag}${!isArchived ? `<button class="tag-del" data-tag="${tag}">✕</button>` : ''}`;
+      if (!isArchived) {
+        chip.querySelector('.tag-del').addEventListener('click', e => {
+          e.stopPropagation();
+          proj.tags = proj.tags.filter(t => t !== tag);
+          syncAll();
+        });
+      }
+      // 태그 클릭 → 검색 모달에서 태그 검색
+      chip.addEventListener('click', e => {
+        if (e.target.classList.contains('tag-del')) return;
+        openSearch('#' + tag);
+      });
+      area.appendChild(chip);
+    });
+
+    // 태그 입력창 (보관 아닐 때만)
+    if (!isArchived) {
+      let suggestEl = null;
+
+      const wrap = document.createElement('div');
+      wrap.className = 'tag-input-wrap';
+      wrap.style.position = 'relative';
+
+      const inp = document.createElement('input');
+      inp.className = 'tag-input';
+      inp.placeholder = '+ 태그 추가';
+      inp.maxLength = 20;
+      wrap.appendChild(inp);
+      area.appendChild(wrap);
+
+      function showSuggest(query) {
+        if (suggestEl) suggestEl.remove();
+        const all = getAllTags().filter(t =>
+          !( proj.tags || []).includes(t) &&
+          t.includes(query.toLowerCase())
+        );
+        if (!all.length) return;
+        suggestEl = document.createElement('div');
+        suggestEl.className = 'tag-suggest';
+        suggestEl.style.cssText = 'position:absolute;top:22px;left:0';
+        all.slice(0, 6).forEach(tag => {
+          const item = document.createElement('div');
+          item.className = 'tag-suggest-item';
+          item.textContent = '#' + tag;
+          item.addEventListener('mousedown', e => {
+            e.preventDefault();
+            addTag(tag);
+          });
+          suggestEl.appendChild(item);
+        });
+        wrap.appendChild(suggestEl);
+      }
+
+      function hideSuggest() {
+        if (suggestEl) { suggestEl.remove(); suggestEl = null; }
+      }
+
+      function addTag(raw) {
+        const tag = raw.trim().replace(/\s+/g, '_').replace(/[^a-zA-Z0-9가-힣_]/g, '');
+        if (!tag) return;
+        if (!proj.tags) proj.tags = [];
+        if (proj.tags.includes(tag)) return;
+        proj.tags.push(tag);
+        syncAll();
+      }
+
+      inp.addEventListener('input', () => showSuggest(inp.value));
+      inp.addEventListener('blur', () => setTimeout(hideSuggest, 150));
+      inp.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+          e.stopPropagation();
+          addTag(inp.value);
+          inp.value = '';
+          hideSuggest();
+        }
+        if (e.key === 'Escape') { inp.blur(); hideSuggest(); }
+      });
+    }
+  }
+
+  refresh();
+  return area;
+}
+
+/* ═══════════════════════════════════════════════
+   SEARCH SYSTEM
+   ═══════════════════════════════════════════════ */
+let _searchMode = 'search'; // 'search' | 'capture'
+let _searchSelectedIdx = -1;
+let _searchResults = [];
+
+function openSearch(prefill = '') {
+  _searchMode = 'search';
+  _applySearchMode();
+  document.getElementById('capture-overlay').classList.add('open');
+  const inp = document.getElementById('capture-input');
+  inp.value = prefill;
+  setTimeout(() => { inp.focus(); if (prefill) inp.select(); }, 50);
+  doSearch(prefill);
+}
 
 function openCapture() {
+  _searchMode = 'search';
+  _applySearchMode();
   document.getElementById('capture-overlay').classList.add('open');
-  document.getElementById('capture-input').value = '';
-  renderCaptureChips(); // 버튼 생성 후 disabled 상태는 renderCaptureChips 안에서 처리됨
-  setTimeout(() => document.getElementById('capture-input').focus(), 50);
+  const inp = document.getElementById('capture-input');
+  inp.value = '';
+  setTimeout(() => inp.focus(), 50);
+  doSearch('');
 }
-function closeCapture() { document.getElementById('capture-overlay').classList.remove('open'); }
 
+function closeCapture() {
+  document.getElementById('capture-overlay').classList.remove('open');
+  _searchMode = 'search';
+}
+
+function _applySearchMode() {
+  const isCapture = _searchMode === 'capture';
+  document.getElementById('search-mode-icon').textContent = isCapture ? '✏️' : '🔍';
+  document.getElementById('capture-input').placeholder = isCapture
+    ? '새 프로젝트 이름을 입력하세요...' : '검색하거나 새 프로젝트를 입력하세요...';
+  document.getElementById('capture-footer-chips').style.display = isCapture ? 'flex' : 'none';
+  document.getElementById('search-results-list').style.display = isCapture ? 'none' : '';
+  document.getElementById('capture-mode-toggle').textContent = isCapture ? '← 검색으로' : '+ 프로젝트 추가';
+  if (isCapture) renderCaptureChips();
+}
+
+// 검색 실행
+function doSearch(query) {
+  const q = query.trim().toLowerCase();
+  const isByTag = q.startsWith('#');
+  const tagQ = isByTag ? q.slice(1) : '';
+  const list = document.getElementById('search-results-list');
+  list.innerHTML = '';
+  _searchResults = [];
+  _searchSelectedIdx = -1;
+
+  if (!q) {
+    list.innerHTML = '<div class="search-empty">프로젝트명 또는 #태그 로 검색하세요</div>';
+    return;
+  }
+
+  state.nodes.forEach(node => {
+    const f = FIELDS[node.field];
+    if (!f) return;
+    (node.projects || []).forEach(proj => {
+      const titleMatch = !isByTag && proj.title.toLowerCase().includes(q);
+      const tagMatch   = isByTag
+        ? (proj.tags || []).some(t => t.toLowerCase().includes(tagQ))
+        : (proj.tags || []).some(t => t.toLowerCase().includes(q));
+      if (!titleMatch && !tagMatch) return;
+      _searchResults.push({ proj, node, f });
+    });
+  });
+
+  if (!_searchResults.length) {
+    list.innerHTML = `<div class="search-empty">검색 결과가 없습니다</div>`;
+    return;
+  }
+
+  _searchResults.forEach((item, idx) => {
+    const { proj, node, f } = item;
+    const statusColor = proj.status === 'done' ? '#68C268' : proj.status === 'doing' ? f.color : '#6470A0';
+    const statusLabel = proj.status === 'done' ? '완료' : proj.status === 'doing' ? '진행중' : '예정';
+    const tagsHtml = (proj.tags || []).map(t =>
+      `<span style="font-size:10px;background:rgba(123,159,224,0.13);color:var(--accent);padding:1px 6px;border-radius:8px">#${t}</span>`
+    ).join('');
+    const archivedBadge = proj.archived
+      ? `<span style="font-size:10px;color:var(--text3)">📦 보관됨</span>` : '';
+
+    const el = document.createElement('div');
+    el.className = 'search-result-item';
+    el.innerHTML = `
+      <div class="search-result-dot" style="background:${f.color}"></div>
+      <div class="search-result-info">
+        <div class="search-result-title">${proj.title}</div>
+        <div class="search-result-meta">${f.icon} ${f.label} · ${node.label} · <span style="color:${statusColor}">${statusLabel}</span> ${archivedBadge}</div>
+        ${tagsHtml ? `<div class="search-result-tags">${tagsHtml}</div>` : ''}
+      </div>
+    `;
+    el.addEventListener('click', () => {
+      closeCapture();
+      setTimeout(() => openNodePanel(node.id), 150);
+    });
+    el.addEventListener('mouseenter', () => _setSearchIdx(idx));
+    list.appendChild(el);
+  });
+}
+
+function _setSearchIdx(idx) {
+  _searchSelectedIdx = idx;
+  document.querySelectorAll('.search-result-item').forEach((el, i) => {
+    el.style.background = i === idx ? 'var(--bg3)' : '';
+  });
+}
+
+// 모달 이벤트
+document.getElementById('capture-overlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeCapture();
+});
+document.getElementById('capture-mode-toggle').addEventListener('click', () => {
+  _searchMode = _searchMode === 'search' ? 'capture' : 'search';
+  _applySearchMode();
+  if (_searchMode === 'search') doSearch(document.getElementById('capture-input').value);
+  document.getElementById('capture-input').focus();
+});
 document.getElementById('open-capture-btn').addEventListener('click', openCapture);
-document.getElementById('capture-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeCapture(); });
+
+const captureInput = document.getElementById('capture-input');
+captureInput.addEventListener('input', () => {
+  if (_searchMode === 'search') {
+    doSearch(captureInput.value);
+  } else {
+    const saveBtn = document.querySelector('#capture-footer-chips .save-btn');
+    if (saveBtn) saveBtn.disabled = captureInput.value.trim() === '';
+  }
+});
+captureInput.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeCapture(); return; }
+  if (_searchMode === 'capture') {
+    if (e.key === 'Enter' && captureInput.value.trim()) saveCapture();
+    return;
+  }
+  // 검색 모드 키 탐색
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    _setSearchIdx(Math.min(_searchSelectedIdx + 1, _searchResults.length - 1));
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    _setSearchIdx(Math.max(_searchSelectedIdx - 1, 0));
+  } else if (e.key === 'Enter' && _searchSelectedIdx >= 0) {
+    const item = _searchResults[_searchSelectedIdx];
+    if (item) { closeCapture(); setTimeout(() => openNodePanel(item.node.id), 150); }
+  }
+});
+
+
+
+let selectedField = 'work';
 
 function renderCaptureChips() {
   const footer = document.getElementById('capture-footer-chips');
@@ -3049,16 +3513,6 @@ function renderCaptureChips() {
   saveBtn.addEventListener('click', saveCapture);
   footer.appendChild(saveBtn);
 }
-
-const captureInput = document.getElementById('capture-input');
-captureInput.addEventListener('input', () => {
-  const saveBtn = document.querySelector('#capture-footer-chips .save-btn');
-  if (saveBtn) saveBtn.disabled = captureInput.value.trim() === '';
-});
-captureInput.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && captureInput.value.trim()) saveCapture();
-  if (e.key === 'Escape') closeCapture();
-});
 
 function saveCapture() {
   const text = captureInput.value.trim();
