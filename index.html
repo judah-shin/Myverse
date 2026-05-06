@@ -206,7 +206,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .search-main-input { flex:1;background:none;border:none;outline:none;font-size:15px;color:var(--text);font-family:inherit; }
 .search-main-input::placeholder { color:var(--text3); }
 .search-divider { height:1px;background:var(--border); }
-.search-results { max-height:360px;overflow-y:auto; }
+.search-results { min-height:100px;max-height:360px;overflow-y:auto; }
 .search-result-item { display:flex;align-items:center;gap:10px;padding:10px 18px;cursor:pointer;transition:background .12s;border-bottom:1px solid var(--border); }
 .search-result-item:hover { background:var(--bg3); }
 .search-result-item:last-child { border-bottom:none; }
@@ -215,7 +215,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .search-result-title { font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
 .search-result-meta { font-size:11px;color:var(--text3);margin-top:2px; }
 .search-result-tags { display:flex;gap:4px;flex-wrap:wrap;margin-top:4px; }
-.search-empty { padding:32px;text-align:center;color:var(--text3);font-size:13px; }
+.search-empty { padding:28px 20px;text-align:center;color:var(--text3);font-size:13px;line-height:1.7; }
 .search-hint-row { padding:8px 16px;font-size:11px;color:var(--text3);display:flex;gap:16px;border-top:1px solid var(--border); }
 
 /* ─── Toast ─── */
@@ -700,6 +700,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   .cards-grid { grid-template-columns: repeat(2, 1fr); }
   .node-panel { width: 100%; }
   .capture-modal { width: calc(100vw - 24px); }
+  .search-modal { width: calc(100vw - 24px); }
   .kanban-board { padding: 10px; }
   .kanban-col { min-width: 180px; }
   .cal-filters { display: none; }
@@ -1397,21 +1398,20 @@ function getTodayTasks() {
 }
 
 function getFieldProgress(field) {
-  // 유튜브 분야는 채널 보드 데이터 기준으로 진행률 계산
+  // 유튜브 분야는 채널 보드 데이터 기준
   if (field === 'yt' && state.ytChannel && state.ytChannel.videos.length > 0) {
     const total = state.ytChannel.videos.length;
     const done  = state.ytChannel.videos.filter(v => v.status === 'done').length;
     return { total, done, pct: total === 0 ? 0 : Math.round(done / total * 100) };
   }
+  // 활성 프로젝트(보관 제외) 기준으로 진행률 계산
   const nodes = state.nodes.filter(n => n.field === field);
   let total = 0, done = 0;
   nodes.forEach(n => {
-    (n.projects || []).forEach(proj => {
-      (proj.todos || []).forEach(todo => {
-        total++; if (todo.done) done++;
-        (todo.plans || []).forEach(plan => { total++; if (plan.done) done++; });
-      });
-    });
+    const activeProjs = (n.projects || []).filter(p => !p.archived);
+    total += activeProjs.length;
+    done  += activeProjs.filter(p => p.status === 'done').length;
+    // fallback: 구 tasks
     (n.tasks || []).forEach(t => { total++; if (t.done) done++; });
   });
   return { total, done, pct: total === 0 ? 0 : Math.round(done / total * 100) };
@@ -2077,12 +2077,19 @@ function getNodeRadius(n) {
 }
 
 function getNodeProgress(node) {
-  let total = 0, done = 0;
-  (node.projects || []).forEach(p => {
-    (p.todos || []).forEach(t => { total++; if (t.done) done++; });
-  });
-  (node.tasks || []).forEach(t => { total++; if (t.done) done++; });
-  return total > 0 ? Math.round(done / total * 100) : null;
+  // 활성 프로젝트만 (보관 제외) 기준으로 진행률 계산
+  const activeProjs = (node.projects || []).filter(p => !p.archived);
+  if (activeProjs.length > 0) {
+    const done = activeProjs.filter(p => p.status === 'done').length;
+    return Math.round(done / activeProjs.length * 100);
+  }
+  // fallback: 구 tasks
+  const tasks = node.tasks || [];
+  if (tasks.length > 0) {
+    const done = tasks.filter(t => t.done).length;
+    return Math.round(done / tasks.length * 100);
+  }
+  return null;
 }
 
 function canExpand(n) {
@@ -2433,29 +2440,33 @@ function openNodePanel(nodeId) {
 }
 
 function renderPanelProgress(node) {
-  let total = 0, done = 0;
-  // 계층형 projects 구조 기반 진행률
-  (node.projects || []).forEach(proj => {
-    (proj.todos || []).forEach(todo => {
-      total++;
-      if (todo.done) done++;
-      (todo.plans || []).forEach(plan => {
-        total++;
-        if (plan.done) done++;
-      });
-    });
-  });
-  // fallback: 구 tasks
+  // 활성 프로젝트만 대상 (보관된 프로젝트 제외)
+  const activeProjs = (node.projects || []).filter(p => !p.archived);
+  const total = activeProjs.length;
+  const done  = activeProjs.filter(p => p.status === 'done').length;
+
+  // fallback: 활성 프로젝트가 없고 구 tasks가 있을 때
+  let pct;
   if (total === 0 && node.tasks && node.tasks.length > 0) {
-    total = node.tasks.length;
-    done = node.tasks.filter(t => t.done).length;
+    const taskTotal = node.tasks.length;
+    const taskDone  = node.tasks.filter(t => t.done).length;
+    pct = taskTotal === 0 ? 0 : Math.round(taskDone / taskTotal * 100);
+    const fill = document.getElementById('panel-prog-fill');
+    fill.style.width = pct + '%';
+    const color = node.field ? FIELDS[node.field].color : '#7B9FE0';
+    fill.style.background = pct === 100 ? '#68C268' : color;
+    document.getElementById('panel-prog-text').textContent = `${taskDone} / ${taskTotal} 완료`;
+    document.getElementById('panel-prog-pct').textContent = pct + '%';
+    return;
   }
-  const pct = total === 0 ? 0 : Math.round(done / total * 100);
+
+  pct = total === 0 ? 0 : Math.round(done / total * 100);
   const fill = document.getElementById('panel-prog-fill');
   fill.style.width = pct + '%';
   const color = node.field ? FIELDS[node.field].color : '#7B9FE0';
   fill.style.background = pct === 100 ? '#68C268' : color;
-  document.getElementById('panel-prog-text').textContent = `${done} / ${total} 완료`;
+  document.getElementById('panel-prog-text').textContent =
+    total === 0 ? '진행 중인 프로젝트 없음' : `${done} / ${total} 프로젝트 완료`;
   document.getElementById('panel-prog-pct').textContent = pct + '%';
 }
 
@@ -3350,12 +3361,12 @@ function openSearch(prefill = '') {
 
 function openCapture() {
   _searchMode = 'search';
-  _applySearchMode();
   document.getElementById('capture-overlay').classList.add('open');
   const inp = document.getElementById('capture-input');
   inp.value = '';
-  setTimeout(() => inp.focus(), 50);
+  _applySearchMode();
   doSearch('');
+  setTimeout(() => inp.focus(), 80);
 }
 
 function closeCapture() {
@@ -3385,7 +3396,7 @@ function doSearch(query) {
   _searchSelectedIdx = -1;
 
   if (!q) {
-    list.innerHTML = '<div class="search-empty">프로젝트명 또는 #태그 로 검색하세요</div>';
+    list.innerHTML = '<div class="search-empty">🔍 프로젝트명으로 검색하거나<br>#태그명으로 태그 검색하세요</div>';
     return;
   }
 
