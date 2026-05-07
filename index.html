@@ -1014,6 +1014,20 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
         <div style="font-size:11px;color:var(--text3);margin-top:6px" id="repeat-desc">반복 없음</div>
       </div>
 
+      <!-- 알람 설정 (프로젝트에만 표시) -->
+      <div id="alarm-section" style="display:none;border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">🔔 알람 설정</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer">
+            <input type="checkbox" id="alarm-enabled" style="accent-color:var(--accent)">
+            알람 사용
+          </label>
+          <input type="time" id="alarm-time" value="09:00"
+            style="background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:4px 8px;color:var(--text);font-size:12px;font-family:inherit">
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:6px">· 프로젝트 시작일에 지정한 시각에 브라우저 알림을 보냅니다<br>· 반복 프로젝트는 매 주기마다 알림이 울립니다</div>
+      </div>
+
       <div class="modal-actions">
         <button class="modal-cancel" id="due-date-cancel">취소</button>
         <button class="modal-save" id="due-date-save">저장</button>
@@ -2560,15 +2574,18 @@ function autoAdvanceRepeatProjects() {
 
   state.nodes.forEach(node => {
     (node.projects || []).forEach(proj => {
-      // 반복 설정이 없거나, 보관됐거나, 날짜 없으면 skip
       if (!proj.repeatAuto) return;
       if (!proj.repeat || proj.repeat === 'none') return;
       if (proj.archived) return;
       const base = proj.dueDate || proj.startDate;
       if (!base) return;
 
-      // 완료일(or 시작일)이 오늘보다 과거 → 다음 주기로 계속 밀어냄
+      // ✅ 완료(done) 상태이고 날짜가 오늘 이전일 때만 다음 주기로 갱신
+      // 미완료 상태면 날짜가 지나도 그대로 유지 (아직 못한 항목)
+      if (proj.status !== 'done') return;
+
       let safety = 0;
+      // 다음 주기 날짜가 오늘 이후가 될 때까지 반복 (건너뛴 주기 처리)
       while ((proj.dueDate || proj.startDate) < todayStr && safety < 365) {
         safety++;
         const next = _calcNextRepeatDate(proj);
@@ -2623,13 +2640,19 @@ function openDueDatePicker(target, type, cb) {
   document.getElementById('due-start-input').value = target.startDate || '';
   document.getElementById('due-date-input').value = target.dueDate || '';
 
-  // 반복 섹션: 프로젝트에만 표시
+  // 반복·알람 섹션: 프로젝트에만 표시
   const repeatSection = document.getElementById('repeat-section');
-  repeatSection.style.display = type === 'project' ? '' : 'none';
-  if (type === 'project') {
+  const alarmSection  = document.getElementById('alarm-section');
+  const isProj = type === 'project';
+  repeatSection.style.display = isProj ? '' : 'none';
+  alarmSection.style.display  = isProj ? '' : 'none';
+  if (isProj) {
     const cur = target.repeat || 'none';
     const curWd = target.repeatWeekdays || [];
     _setRepeatUI(cur, curWd);
+    // 알람 UI 초기값
+    document.getElementById('alarm-enabled').checked = !!target.alarmEnabled;
+    document.getElementById('alarm-time').value = target.alarmTime || '09:00';
   }
 
   document.getElementById('due-date-overlay').classList.add('open');
@@ -2701,12 +2724,14 @@ document.getElementById('due-date-save').addEventListener('click', () => {
   _dueTarget.startDate = startVal || null;
   _dueTarget.dueDate   = endVal   || null;
 
-  // 반복 설정 저장 (repeat-section이 보일 때만, 즉 프로젝트)
+  // 반복·알람 설정 저장 (프로젝트일 때만)
   if (document.getElementById('repeat-section').style.display !== 'none') {
     _dueTarget.repeat = _curRepeat || 'none';
-    _dueTarget.repeatWeekdays = _curRepeat === 'weekly' ? [..._curRepeatWd] : [];
-    // 반복 프로젝트: 완료 시 다음 날짜로 자동 갱신 플래그
+    _dueTarget.repeatWeekdays = (_curRepeat === 'weekly' || _curRepeat === 'biweekly') ? [..._curRepeatWd] : [];
     _dueTarget.repeatAuto = _curRepeat !== 'none';
+    // 알람
+    _dueTarget.alarmEnabled = document.getElementById('alarm-enabled').checked;
+    _dueTarget.alarmTime    = document.getElementById('alarm-time').value || '09:00';
   }
 
   document.getElementById('due-date-overlay').classList.remove('open');
@@ -4666,8 +4691,87 @@ document.getElementById('yt-add-to-pillar-btn').addEventListener('click', () => 
 /* ── loadData 마이그레이션: ytChannel 필드 보장 ── */
 if (!state.ytChannel) state.ytChannel = { videos:[], ideas:[], notes:'', strategyNotes:'' };
 
+/* ═══════════════════════════════════════════════
+   ALARM SYSTEM (브라우저 알림)
+   ═══════════════════════════════════════════════ */
+let _alarmInterval = null;
+let _alarmFiredToday = new Set(); // 오늘 이미 울린 알람 ID 기록
+
+function initAlarms() {
+  // 브라우저 알림 권한 요청
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+
+  // 매 30초마다 알람 체크
+  if (_alarmInterval) clearInterval(_alarmInterval);
+  _alarmInterval = setInterval(checkAlarms, 30000);
+  checkAlarms(); // 앱 시작 시 즉시 1회 체크
+}
+
+function checkAlarms() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission !== 'granted') return;
+
+  const now      = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
+  const hh       = String(now.getHours()).padStart(2, '0');
+  const mm       = String(now.getMinutes()).padStart(2, '0');
+  const nowTime  = `${hh}:${mm}`;
+
+  state.nodes.forEach(node => {
+    const f = FIELDS[node.field];
+    if (!f) return;
+    (node.projects || []).forEach(proj => {
+      if (!proj.alarmEnabled) return;
+      if (proj.archived) return;
+      if (proj.status === 'done') return;
+
+      // 프로젝트 시작일이 오늘이거나, 완료일이 오늘인 경우 알람
+      const targetDate = proj.startDate || proj.dueDate;
+      if (targetDate !== todayStr) return;
+
+      const alarmTime = proj.alarmTime || '09:00';
+      if (nowTime !== alarmTime) return;
+
+      // 이미 오늘 울린 알람이면 skip
+      const alarmKey = `${proj.id}_${todayStr}`;
+      if (_alarmFiredToday.has(alarmKey)) return;
+      _alarmFiredToday.add(alarmKey);
+
+      // 알림 발송
+      const n = new Notification(`🔔 Myverse 알람`, {
+        body: `[${f.label}] ${proj.title}`,
+        icon: '⏰',
+        tag: alarmKey
+      });
+      // 알림 클릭 시 앱 포커스
+      n.onclick = () => { window.focus(); openNodePanel(node.id); };
+
+      showToast(`🔔 알람: ${proj.title}`);
+    });
+  });
+}
+
+function getAlarmSummary() {
+  // 오늘 알람 목록 반환 (설정 확인용)
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const list = [];
+  state.nodes.forEach(node => {
+    const f = FIELDS[node.field];
+    if (!f) return;
+    (node.projects || []).forEach(proj => {
+      if (!proj.alarmEnabled || proj.archived) return;
+      const targetDate = proj.startDate || proj.dueDate;
+      if (targetDate !== todayStr) return;
+      list.push({ title: proj.title, time: proj.alarmTime || '09:00', field: f.label });
+    });
+  });
+  return list.sort((a, b) => a.time.localeCompare(b.time));
+}
+
 /* ─── INIT ─── */
-autoAdvanceRepeatProjects(); // 반복 프로젝트 자동 갱신 (앱 실행 시)
+autoAdvanceRepeatProjects();
 syncFields();
 Object.keys(FIELDS).forEach(k => activeFilters.add(k));
 renderCardView();
@@ -4676,6 +4780,7 @@ renderKanban();
 renderCalFilters();
 renderCalHeader();
 renderCalGrid();
+initAlarms(); // 알람 시스템 시작
 </script>
 </body>
 </html>
