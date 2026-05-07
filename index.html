@@ -187,6 +187,40 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .save-btn:disabled { opacity: .4; cursor: default; }
 .capture-hint-row { padding: 8px 16px; font-size: 11px; color: var(--text3); display: flex; gap: 16px; border-top: 1px solid var(--border); }
 
+
+/* ─── Schedule Board ─── */
+.sched-month-tabs { display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap; }
+.sched-month-tab { padding:6px 18px;border-radius:20px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s; }
+.sched-month-tab.active { background:rgba(60,191,160,0.18);color:var(--c-yt);border-color:var(--c-yt); }
+.sched-month-panel { display:none; }
+.sched-month-panel.active { display:block; }
+.sched-week { background:var(--bg2);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden; }
+.sched-week-hd { display:flex;align-items:center;gap:10px;padding:13px 16px;cursor:pointer;user-select:none; }
+.sched-week-hd:hover { background:rgba(255,255,255,0.03); }
+.sched-week-num { font-size:10px;font-weight:700;padding:2px 9px;border-radius:3px;background:var(--c-yt);color:#1A2E45;white-space:nowrap;flex-shrink:0; }
+.sched-week-title { font-size:13px;font-weight:600;color:var(--text);flex:1; }
+.sched-pillar-tag { font-size:10px;padding:2px 8px;border-radius:10px;border:1px solid;white-space:nowrap;flex-shrink:0; }
+.sched-status-badge { font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;flex-shrink:0; }
+.sched-chevron { font-size:11px;color:var(--text3);transition:transform .2s;flex-shrink:0; }
+.sched-week.open .sched-chevron { transform:rotate(180deg); }
+.sched-week-bd { display:none;padding:0 16px 14px;border-top:1px solid var(--border); }
+.sched-week.open .sched-week-bd { display:block; }
+.sched-week-meta { font-size:11px;color:var(--text3);margin:10px 0 12px; }
+.sched-checklist { display:flex;flex-direction:column;gap:4px; }
+.sched-check { display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;transition:background .12s; }
+.sched-check:hover { background:var(--bg3); }
+.sched-check-box { width:15px;height:15px;border:1.5px solid var(--text3);border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s; }
+.sched-check.done .sched-check-box { background:var(--c-yt);border-color:var(--c-yt); }
+.sched-check.done .sched-check-box::after { content:'✓';color:#1A2E45;font-size:9px;font-weight:700; }
+.sched-check-text { font-size:12px;color:var(--text2); }
+.sched-check.done .sched-check-text { color:var(--text3);text-decoration:line-through; }
+.sched-progress { height:4px;background:var(--bg3);border-radius:2px;margin-top:10px;overflow:hidden; }
+.sched-progress-fill { height:100%;background:var(--c-yt);border-radius:2px;transition:width .3s; }
+.sched-month-summary { display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap; }
+.sched-summary-card { flex:1;min-width:100px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px; }
+.sched-summary-num { font-size:22px;font-weight:700;color:var(--c-yt); }
+.sched-summary-label { font-size:11px;color:var(--text3);margin-top:2px; }
+
 /* ─── Tag UI ─── */
 .tag-area { display:flex;flex-wrap:wrap;gap:5px;align-items:center;padding:6px 12px 8px;border-top:1px solid var(--border); }
 .tag-chip { display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:500;background:rgba(123,159,224,0.13);color:var(--accent);border:1px solid rgba(123,159,224,0.25);cursor:default; }
@@ -825,6 +859,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
           <button class="yt-subtab" data-ytpage="allvideos">▤ 전체 영상 <span class="yt-badge" id="yt-badge-total">0</span></button>
           <button class="yt-subtab" data-ytpage="ideas">✦ 아이디어 <span class="yt-badge" id="yt-badge-ideas">0</span></button>
           <button class="yt-subtab" data-ytpage="strategy">◎ 채널 전략</button>
+          <button class="yt-subtab" data-ytpage="schedule">📅 스케줄</button>
         </div>
         <button class="yt-add-btn" id="yt-add-video-btn">＋ 영상 추가</button>
       </div>
@@ -936,6 +971,17 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
             </div>
             <textarea class="yt-textarea" id="yt-strategy-notes" placeholder="채널 전략, 방향성, 장기 목표 등을 자유롭게 기록하세요..."></textarea>
           </div>
+        </div>
+
+
+        <!-- 스케줄 보드 페이지 -->
+        <div class="yt-page" id="ytpage-schedule">
+          <div class="sched-month-tabs">
+            <button class="sched-month-tab active" data-month="1">1개월</button>
+            <button class="sched-month-tab" data-month="2">2개월</button>
+            <button class="sched-month-tab" data-month="3">3개월</button>
+          </div>
+          <div id="sched-panels"></div>
         </div>
 
       </div><!-- /yt-body -->
@@ -4358,6 +4404,7 @@ document.querySelectorAll('.yt-subtab').forEach(btn => {
       const el = document.getElementById('yt-strategy-notes');
       if (el) el.value = ytGetData().strategyNotes || '';
     }
+    if (page === 'schedule') renderSchedBoard();
   });
 });
 
@@ -4690,6 +4737,249 @@ document.getElementById('yt-add-to-pillar-btn').addEventListener('click', () => 
 
 /* ── loadData 마이그레이션: ytChannel 필드 보장 ── */
 if (!state.ytChannel) state.ytChannel = { videos:[], ideas:[], notes:'', strategyNotes:'' };
+
+
+/* ═══════════════════════════════════════════════
+   SCHEDULE BOARD — One Worshiper 3개월 플랜
+   ═══════════════════════════════════════════════ */
+
+const SCHED_DATA = {
+  1: {
+    label: '1개월 — 채널 재시작',
+    videos: [
+      {
+        num: 'EP.00', title: '다시 시작합니다 — One Worshiper',
+        pillar: '채널 소개', pillarColor: '#3CBFA0',
+        meta: '목표 시간: 3분 20초 · 채널 소개 · 슬라이드 7장',
+        checks: ['채널 방향성 스크립트 작성','슬라이드 7장 제작','보이스오버 녹음','영상 편집 완료','썸네일 제작','업로드 예약']
+      },
+      {
+        num: 'EP.01', title: '예배란 무엇인가? — 시리즈 EP.1',
+        pillar: '예배 신학', pillarColor: '#7B9FE0',
+        meta: '목표 시간: 8~10분 · 슬라이드 강의형',
+        checks: ['주제 리서치 및 신학 자료 수집','슬라이드 강의 스크립트 작성','슬라이드 제작','녹화 및 편집','썸네일 제작','업로드 예약']
+      },
+      {
+        num: 'EP.02', title: 'Worship Set List 앱 소개 (EP.1)',
+        pillar: '예배 현장 A to Z', pillarColor: '#D4A84B',
+        meta: '목표 시간: 10~12분 · iPad 화면 미러링 포함',
+        checks: ['앱 핵심 기능 정리','iPad 화면 녹화 준비','스크립트 작성','녹화 및 편집','썸네일 제작','업로드 예약']
+      },
+      {
+        num: 'EP.03', title: '모이기를 폐하는 성도 — 히브리서 10:24-25',
+        pillar: '말씀 묵상', pillarColor: '#68C268',
+        meta: '목표 시간: 8~10분 · 슬라이드 말씀 묵상형',
+        checks: ['본문 묵상 및 아웃라인 작성','슬라이드 제작','녹화','편집 완료','업로드']
+      },
+      {
+        num: 'EP.04', title: '어쿠스틱 기타 이펙트 체인 이해하기',
+        pillar: '기타로 예배 인도', pillarColor: '#E06C75',
+        meta: '목표 시간: 10~15분 · 슬라이드 + 실제 장비 시연',
+        checks: ['이펙트 체인 구성 정리','촬영 세팅 준비','장비 시연 촬영','편집 완료','썸네일 제작','업로드']
+      },
+      {
+        num: 'EP.05', title: '라이브 루프로 예배 인도하기 1',
+        pillar: 'Logic Pro · MainStage', pillarColor: '#C678DD',
+        meta: '목표 시간: 12~15분 · MacBook 화면 녹화 + 실습 시연',
+        checks: ['Live Loops 예배 세팅 준비','MacBook 화면 녹화','실습 시연 촬영','편집 완료','썸네일 제작','업로드']
+      }
+    ]
+  },
+  2: {
+    label: '2개월 — 시리즈 심화',
+    videos: [
+      {
+        num: 'EP.06', title: '왜 예배를 드려야 하는가? — 시리즈 EP.2',
+        pillar: '예배 신학', pillarColor: '#7B9FE0',
+        meta: '예배 신학 시리즈 2편 · 슬라이드 강의형',
+        checks: ['EP.1 댓글 피드백 반영','스크립트 작성','슬라이드 제작','녹화 및 편집','썸네일 제작','업로드']
+      },
+      {
+        num: 'EP.07', title: 'Worship Set List 앱 소개 (EP.2)',
+        pillar: '예배 현장 A to Z', pillarColor: '#D4A84B',
+        meta: 'Set List 앱 심화 활용법',
+        checks: ['심화 기능 정리','화면 녹화 준비','스크립트 작성','녹화 및 편집','업로드']
+      },
+      {
+        num: 'EP.08', title: '예수 그리스도의 증인',
+        pillar: '말씀 묵상', pillarColor: '#68C268',
+        meta: '말씀 묵상 시리즈 · 슬라이드형',
+        checks: ['본문 묵상 및 아웃라인','슬라이드 제작','녹화','편집 완료','업로드']
+      },
+      {
+        num: 'EP.09', title: '나의 기타 이펙트 체인',
+        pillar: '기타로 예배 인도', pillarColor: '#E06C75',
+        meta: '실제 이펙터 보드 공개 · 장비 시연',
+        checks: ['이펙터 보드 세팅','촬영 준비','장비 시연 촬영','편집 완료','업로드']
+      },
+      {
+        num: 'EP.10', title: '라이브 루프로 예배 인도하기 2',
+        pillar: 'Logic Pro · MainStage', pillarColor: '#C678DD',
+        meta: '라이브 루프 심화편 · 실전 예배 적용',
+        checks: ['실전 예배 세트 준비','화면 녹화','편집 완료','썸네일 제작','업로드']
+      }
+    ]
+  },
+  3: {
+    label: '3개월 — 채널 정착',
+    videos: [
+      {
+        num: 'EP.11', title: '누구에게 예배를 드려야 하는가? — 시리즈 EP.3',
+        pillar: '예배 신학', pillarColor: '#7B9FE0',
+        meta: '예배 신학 시리즈 3편 · 삼위일체 예배론',
+        checks: ['신학 자료 수집','스크립트 작성','슬라이드 제작','녹화 및 편집','업로드']
+      },
+      {
+        num: 'EP.12', title: 'Worship Set List 앱 소개 (EP.3)',
+        pillar: '예배 현장 A to Z', pillarColor: '#D4A84B',
+        meta: 'Set List 앱 실전 예배 적용 사례',
+        checks: ['실전 사례 정리','화면 녹화 준비','녹화 및 편집','업로드']
+      },
+      {
+        num: 'EP.13', title: '당신에게 십자가는 무엇입니까?',
+        pillar: '말씀 묵상', pillarColor: '#68C268',
+        meta: '부활절 시즌 맞춤 말씀 묵상',
+        checks: ['본문 묵상 및 아웃라인','슬라이드 제작','녹화','편집 완료','업로드']
+      },
+      {
+        num: 'EP.14', title: '나의 기타 이펙트 체인 02',
+        pillar: '기타로 예배 인도', pillarColor: '#E06C75',
+        meta: '이펙트 체인 심화편 · 페달 비교',
+        checks: ['페달 비교 세팅 준비','촬영','편집 완료','썸네일 제작','업로드']
+      },
+      {
+        num: 'EP.15', title: '라이브 루프로 예배 인도하기 3',
+        pillar: 'Logic Pro · MainStage', pillarColor: '#C678DD',
+        meta: '라이브 루프 응용 — 멀티 악기 구성',
+        checks: ['멀티 악기 세팅 준비','화면 녹화','편집 완료','업로드']
+      }
+    ]
+  }
+};
+
+// localStorage 키
+function _schedKey(month, vidIdx, checkIdx) {
+  return `sched_m${month}_v${vidIdx}_c${checkIdx}`;
+}
+
+function _schedGetCheck(month, vidIdx, checkIdx) {
+  return localStorage.getItem(_schedKey(month, vidIdx, checkIdx)) === '1';
+}
+
+function _schedSetCheck(month, vidIdx, checkIdx, val) {
+  localStorage.setItem(_schedKey(month, vidIdx, checkIdx), val ? '1' : '0');
+}
+
+let _schedCurrentMonth = 1;
+
+function renderSchedBoard() {
+  const container = document.getElementById('sched-panels');
+  if (!container) return;
+  container.innerHTML = '';
+
+  [1, 2, 3].forEach(month => {
+    const data   = SCHED_DATA[month];
+    const panel  = document.createElement('div');
+    panel.className = 'sched-month-panel' + (month === _schedCurrentMonth ? ' active' : '');
+    panel.dataset.month = month;
+
+    // 요약 카드
+    let totalChecks = 0, doneChecks = 0;
+    data.videos.forEach((vid, vi) => {
+      vid.checks.forEach((_, ci) => {
+        totalChecks++;
+        if (_schedGetCheck(month, vi, ci)) doneChecks++;
+      });
+    });
+    const overallPct = totalChecks === 0 ? 0 : Math.round(doneChecks / totalChecks * 100);
+
+    panel.innerHTML = `
+      <div class="sched-month-summary">
+        <div class="sched-summary-card">
+          <div class="sched-summary-num">${data.videos.length}</div>
+          <div class="sched-summary-label">총 영상</div>
+        </div>
+        <div class="sched-summary-card">
+          <div class="sched-summary-num">${doneChecks}</div>
+          <div class="sched-summary-label">완료 체크 (${totalChecks}개 중)</div>
+        </div>
+        <div class="sched-summary-card">
+          <div class="sched-summary-num">${overallPct}%</div>
+          <div class="sched-summary-label">${data.label}</div>
+        </div>
+      </div>
+      <div class="sched-progress" style="margin-bottom:20px">
+        <div class="sched-progress-fill" style="width:${overallPct}%"></div>
+      </div>
+    `;
+
+    // 영상별 카드
+    data.videos.forEach((vid, vi) => {
+      const checksDone = vid.checks.filter((_, ci) => _schedGetCheck(month, vi, ci)).length;
+      const pct = vid.checks.length === 0 ? 0 : Math.round(checksDone / vid.checks.length * 100);
+      const allDone = pct === 100;
+
+      const card = document.createElement('div');
+      card.className = 'sched-week';
+
+      const checksHtml = vid.checks.map((chk, ci) => {
+        const done = _schedGetCheck(month, vi, ci);
+        return `<div class="sched-check${done ? ' done' : ''}" data-m="${month}" data-v="${vi}" data-c="${ci}">
+          <div class="sched-check-box"></div>
+          <div class="sched-check-text">${chk}</div>
+        </div>`;
+      }).join('');
+
+      card.innerHTML = `
+        <div class="sched-week-hd">
+          <span class="sched-week-num">${vid.num}</span>
+          <span class="sched-week-title">${vid.title}</span>
+          <span class="sched-pillar-tag" style="color:${vid.pillarColor};border-color:${vid.pillarColor}">${vid.pillar}</span>
+          <span class="sched-status-badge" style="background:${allDone?'rgba(60,191,160,0.18)':'var(--bg3)'};color:${allDone?'var(--c-yt)':'var(--text3)'}">${allDone?'✓ 완료':checksDone+'/'+vid.checks.length}</span>
+          <span class="sched-chevron">▼</span>
+        </div>
+        <div class="sched-week-bd">
+          <div class="sched-week-meta">${vid.meta}</div>
+          <div class="sched-checklist">${checksHtml}</div>
+          <div class="sched-progress" style="margin-top:12px">
+            <div class="sched-progress-fill" style="width:${pct}%"></div>
+          </div>
+        </div>
+      `;
+
+      // 헤더 클릭 → 펼치기/접기
+      card.querySelector('.sched-week-hd').addEventListener('click', () => {
+        card.classList.toggle('open');
+      });
+
+      // 체크박스 클릭
+      card.querySelectorAll('.sched-check').forEach(el => {
+        el.addEventListener('click', e => {
+          e.stopPropagation();
+          const m = +el.dataset.m, v = +el.dataset.v, c = +el.dataset.c;
+          const cur = _schedGetCheck(m, v, c);
+          _schedSetCheck(m, v, c, !cur);
+          renderSchedBoard(); // 전체 리렌더
+        });
+      });
+
+      panel.appendChild(card);
+    });
+
+    container.appendChild(panel);
+  });
+
+  // 월 탭 클릭 이벤트
+  document.querySelectorAll('.sched-month-tab').forEach(btn => {
+    btn.onclick = () => {
+      _schedCurrentMonth = +btn.dataset.month;
+      document.querySelectorAll('.sched-month-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderSchedBoard();
+    };
+  });
+}
+
 
 /* ═══════════════════════════════════════════════
    ALARM SYSTEM (브라우저 알림)
