@@ -1464,15 +1464,13 @@ function getFieldProgress(field) {
     const done  = state.ytChannel.videos.filter(v => v.status === 'done').length;
     return { total, done, pct: total === 0 ? 0 : Math.round(done / total * 100) };
   }
-  // 활성 프로젝트(보관 제외) 기준으로 진행률 계산
+  // 활성 프로젝트(보관 제외)만 기준
   const nodes = state.nodes.filter(n => n.field === field);
   let total = 0, done = 0;
   nodes.forEach(n => {
     const activeProjs = (n.projects || []).filter(p => !p.archived);
     total += activeProjs.length;
     done  += activeProjs.filter(p => p.status === 'done').length;
-    // fallback: 구 tasks
-    (n.tasks || []).forEach(t => { total++; if (t.done) done++; });
   });
   return { total, done, pct: total === 0 ? 0 : Math.round(done / total * 100) };
 }
@@ -2137,19 +2135,11 @@ function getNodeRadius(n) {
 }
 
 function getNodeProgress(node) {
-  // 활성 프로젝트만 (보관 제외) 기준으로 진행률 계산
+  // 활성 프로젝트만 (보관 제외)
   const activeProjs = (node.projects || []).filter(p => !p.archived);
-  if (activeProjs.length > 0) {
-    const done = activeProjs.filter(p => p.status === 'done').length;
-    return Math.round(done / activeProjs.length * 100);
-  }
-  // fallback: 구 tasks
-  const tasks = node.tasks || [];
-  if (tasks.length > 0) {
-    const done = tasks.filter(t => t.done).length;
-    return Math.round(done / tasks.length * 100);
-  }
-  return null;
+  if (activeProjs.length === 0) return null; // 진행 중인 프로젝트 없음 → % 표시 안 함
+  const done = activeProjs.filter(p => p.status === 'done').length;
+  return Math.round(done / activeProjs.length * 100);
 }
 
 function canExpand(n) {
@@ -2500,30 +2490,15 @@ function openNodePanel(nodeId) {
 }
 
 function renderPanelProgress(node) {
-  // 활성 프로젝트만 대상 (보관된 프로젝트 제외)
+  // 활성 프로젝트만 (보관된 프로젝트 완전 제외)
   const activeProjs = (node.projects || []).filter(p => !p.archived);
   const total = activeProjs.length;
   const done  = activeProjs.filter(p => p.status === 'done').length;
+  const pct   = total === 0 ? 0 : Math.round(done / total * 100);
 
-  // fallback: 활성 프로젝트가 없고 구 tasks가 있을 때
-  let pct;
-  if (total === 0 && node.tasks && node.tasks.length > 0) {
-    const taskTotal = node.tasks.length;
-    const taskDone  = node.tasks.filter(t => t.done).length;
-    pct = taskTotal === 0 ? 0 : Math.round(taskDone / taskTotal * 100);
-    const fill = document.getElementById('panel-prog-fill');
-    fill.style.width = pct + '%';
-    const color = node.field ? FIELDS[node.field].color : '#7B9FE0';
-    fill.style.background = pct === 100 ? '#68C268' : color;
-    document.getElementById('panel-prog-text').textContent = `${taskDone} / ${taskTotal} 완료`;
-    document.getElementById('panel-prog-pct').textContent = pct + '%';
-    return;
-  }
-
-  pct = total === 0 ? 0 : Math.round(done / total * 100);
-  const fill = document.getElementById('panel-prog-fill');
-  fill.style.width = pct + '%';
+  const fill  = document.getElementById('panel-prog-fill');
   const color = node.field ? FIELDS[node.field].color : '#7B9FE0';
+  fill.style.width      = pct + '%';
   fill.style.background = pct === 100 ? '#68C268' : color;
   document.getElementById('panel-prog-text').textContent =
     total === 0 ? '진행 중인 프로젝트 없음' : `${done} / ${total} 프로젝트 완료`;
