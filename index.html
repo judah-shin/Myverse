@@ -216,7 +216,59 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .sched-check.done .sched-check-text { color:var(--text3);text-decoration:line-through; }
 .sched-progress { height:4px;background:var(--bg3);border-radius:2px;margin-top:10px;overflow:hidden; }
 .sched-progress-fill { height:100%;background:var(--c-yt);border-radius:2px;transition:width .3s; }
+/* ─── 스케줄 보드 확장: 스크립트·첨부·텔레프롬프터 ─── */
 .sched-month-summary { display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap; }
+
+/* 첨부 링크 영역 */
+.sched-attach-area { margin-top:14px;padding-top:12px;border-top:1px solid var(--border); }
+.sched-attach-title { font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;gap:6px; }
+.sched-attach-list { display:flex;flex-direction:column;gap:5px;margin-bottom:8px; }
+.sched-attach-item { display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--bg3);border-radius:7px;font-size:12px; }
+.sched-attach-icon { font-size:13px;flex-shrink:0; }
+.sched-attach-name { flex:1;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;text-decoration:none; }
+.sched-attach-name:hover { color:var(--accent); }
+.sched-attach-del { background:none;border:none;cursor:pointer;color:var(--text3);font-size:11px;padding:0 3px;opacity:.6;flex-shrink:0; }
+.sched-attach-del:hover { opacity:1;color:#E07070; }
+.sched-attach-form { display:flex;gap:5px;flex-wrap:wrap;margin-top:4px; }
+.sched-attach-input { flex:1;min-width:100px;background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:5px 9px;font-size:11px;color:var(--text);outline:none;font-family:inherit; }
+.sched-attach-input:focus { border-color:var(--accent); }
+.sched-attach-btn { padding:5px 11px;border-radius:6px;background:rgba(123,159,224,0.15);color:var(--accent);border:1px solid rgba(123,159,224,0.25);font-size:11px;cursor:pointer;font-weight:600;white-space:nowrap; }
+.sched-attach-btn:hover { background:rgba(123,159,224,0.25); }
+
+/* 스크립트 영역 */
+.sched-script-area { margin-top:14px;padding-top:12px;border-top:1px solid var(--border); }
+.sched-script-title { font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:6px; }
+.sched-script-actions { display:flex;gap:5px;align-items:center; }
+.sched-script-btn { padding:3px 10px;border-radius:5px;background:rgba(60,191,160,0.12);color:var(--c-yt);border:1px solid rgba(60,191,160,0.25);font-size:10px;cursor:pointer;font-weight:600; }
+.sched-script-btn:hover { background:rgba(60,191,160,0.22); }
+.sched-script-textarea { width:100%;min-height:140px;background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text2);font-family:'Pretendard',inherit;line-height:1.7;outline:none;resize:vertical;box-sizing:border-box; }
+.sched-script-textarea:focus { border-color:var(--c-yt); }
+.sched-script-textarea::placeholder { color:var(--text3); }
+.sched-script-hint { font-size:10px;color:var(--text3);margin-top:5px; }
+.sched-teleprompter-btn { width:100%;margin-top:10px;padding:9px;border-radius:8px;background:rgba(60,191,160,0.15);color:var(--c-yt);border:1px solid rgba(60,191,160,0.3);font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s; }
+.sched-teleprompter-btn:hover { background:rgba(60,191,160,0.25);transform:translateY(-1px); }
+.sched-teleprompter-btn:disabled { opacity:.4;cursor:not-allowed;transform:none; }
+
+/* 텔레프롬프터 오버레이 */
+#teleprompter-overlay { display:none;position:fixed;inset:0;background:#0a0e1a;z-index:9999;flex-direction:column; }
+#teleprompter-overlay.active { display:flex; }
+.tp-controls { display:flex;align-items:center;gap:12px;padding:12px 20px;background:rgba(0,0,0,0.6);flex-shrink:0;flex-wrap:wrap; }
+.tp-title { font-size:13px;font-weight:700;color:rgba(255,255,255,0.8);flex:1;min-width:120px; }
+.tp-ctrl-group { display:flex;align-items:center;gap:8px; }
+.tp-label { font-size:11px;color:rgba(255,255,255,0.5); }
+.tp-btn { padding:5px 14px;border-radius:6px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:#fff;font-size:12px;font-weight:700;cursor:pointer;transition:all .12s; }
+.tp-btn:hover { background:rgba(255,255,255,0.2); }
+.tp-btn.play { background:rgba(60,191,160,0.3);border-color:rgba(60,191,160,0.5);color:#3CBFA0; }
+.tp-btn.play:hover { background:rgba(60,191,160,0.45); }
+.tp-slider { width:90px;accent-color:#3CBFA0; }
+.tp-close { padding:5px 12px;border-radius:6px;border:1px solid rgba(255,80,80,0.4);background:rgba(255,80,80,0.15);color:#ff7070;font-size:12px;font-weight:700;cursor:pointer; }
+.tp-close:hover { background:rgba(255,80,80,0.28); }
+.tp-progress-bar { height:3px;background:rgba(255,255,255,0.1);flex-shrink:0; }
+.tp-progress-fill { height:100%;background:#3CBFA0;transition:width .3s; }
+.tp-scroll-area { flex:1;overflow:hidden;position:relative; }
+.tp-content { padding:60px 10% 200px;font-size:28px;line-height:1.9;color:#e8eaf0;font-family:'Pretendard',sans-serif;white-space:pre-wrap;word-break:keep-all; }
+.tp-slide-marker { display:block;background:rgba(60,191,160,0.15);border:1px solid rgba(60,191,160,0.4);border-radius:8px;padding:8px 18px;margin:18px 0;color:#3CBFA0;font-size:18px;font-weight:700;text-align:center; }
+.tp-hint { position:fixed;bottom:20px;left:50%;transform:translateX(-50%);font-size:12px;color:rgba(255,255,255,0.3);pointer-events:none; }
 .sched-summary-card { flex:1;min-width:100px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px; }
 .sched-summary-num { font-size:22px;font-weight:700;color:var(--c-yt); }
 .sched-summary-label { font-size:11px;color:var(--text3);margin-top:2px; }
@@ -1223,6 +1275,30 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
       <button class="yt-modal-confirm" id="yt-idea-confirm">추가</button>
     </div>
   </div>
+</div>
+
+<!-- 텔레프롬프터 오버레이 -->
+<div id="teleprompter-overlay">
+  <div class="tp-controls">
+    <span class="tp-title" id="tp-ep-title">텔레프롬프터</span>
+    <div class="tp-ctrl-group">
+      <span class="tp-label">속도</span>
+      <input type="range" class="tp-slider" id="tp-speed" min="1" max="10" value="3">
+      <span class="tp-label" id="tp-speed-val">3</span>
+    </div>
+    <div class="tp-ctrl-group">
+      <span class="tp-label">글자</span>
+      <button class="tp-btn" id="tp-font-down">A-</button>
+      <button class="tp-btn" id="tp-font-up">A+</button>
+    </div>
+    <button class="tp-btn play" id="tp-play-btn">▶ 시작</button>
+    <button class="tp-close" id="tp-close-btn">✕ 닫기</button>
+  </div>
+  <div class="tp-progress-bar"><div class="tp-progress-fill" id="tp-progress-fill"></div></div>
+  <div class="tp-scroll-area" id="tp-scroll-area">
+    <div class="tp-content" id="tp-content"></div>
+  </div>
+  <div class="tp-hint">스페이스바: 일시정지/재생 · ESC: 닫기</div>
 </div>
 
 <!-- Toast -->
@@ -4905,6 +4981,30 @@ function renderSchedBoard() {
         </div>`;
       }).join('');
 
+      // 첨부 링크 데이터
+      const attachKey = `sched_attach_m${month}_v${vi}`;
+      let attachList = [];
+      try { attachList = JSON.parse(localStorage.getItem(attachKey) || '[]'); } catch {}
+
+      // 스크립트 데이터
+      const scriptKey = `sched_script_m${month}_v${vi}`;
+      const scriptText = localStorage.getItem(scriptKey) || '';
+
+      // 첨부 링크 목록 HTML
+      const attachItemsHtml = attachList.map((a, ai) => {
+        const icon = a.url.includes('drive.google') ? '📁' :
+                     a.url.includes('youtube.com') || a.url.includes('youtu.be') ? '🎬' :
+                     a.url.includes('.pptx') || a.url.includes('presentation') ? '📊' :
+                     a.url.includes('.docx') || a.url.includes('document') ? '📄' : '🔗';
+        return `<div class="sched-attach-item">
+          <span class="sched-attach-icon">${icon}</span>
+          <a class="sched-attach-name" href="${a.url}" target="_blank" rel="noopener">${a.name}</a>
+          <button class="sched-attach-del" data-ai="${ai}" title="삭제">✕</button>
+        </div>`;
+      }).join('');
+
+      const cardId = `sched-card-m${month}-v${vi}`;
+
       card.innerHTML = `
         <div class="sched-week-hd">
           <span class="sched-week-num">${vid.num}</span>
@@ -4913,11 +5013,45 @@ function renderSchedBoard() {
           <span class="sched-status-badge" style="background:${allDone?'rgba(60,191,160,0.18)':'var(--bg3)'};color:${allDone?'var(--c-yt)':'var(--text3)'}">${allDone?'✓ 완료':checksDone+'/'+vid.checks.length}</span>
           <span class="sched-chevron">▼</span>
         </div>
-        <div class="sched-week-bd">
+        <div class="sched-week-bd" id="${cardId}">
           <div class="sched-week-meta">${vid.meta}</div>
           <div class="sched-checklist">${checksHtml}</div>
           <div class="sched-progress" style="margin-top:12px">
             <div class="sched-progress-fill" style="width:${pct}%"></div>
+          </div>
+
+          <!-- 첨부 링크 영역 -->
+          <div class="sched-attach-area">
+            <div class="sched-attach-title">📎 첨부 링크
+              <span style="font-size:10px;font-weight:400;color:var(--text3);">구글 드라이브·PPT·참고 영상 등</span>
+            </div>
+            <div class="sched-attach-list" id="attach-list-m${month}-v${vi}">${attachItemsHtml}</div>
+            <div class="sched-attach-form">
+              <input class="sched-attach-input" id="attach-name-m${month}-v${vi}" placeholder="파일 이름 (예: EP.00 슬라이드)">
+              <input class="sched-attach-input" id="attach-url-m${month}-v${vi}" placeholder="링크 URL 붙여넣기">
+              <button class="sched-attach-btn" data-m="${month}" data-v="${vi}">+ 추가</button>
+            </div>
+          </div>
+
+          <!-- 스크립트 영역 -->
+          <div class="sched-script-area">
+            <div class="sched-script-title">
+              <span>📝 스크립트</span>
+              <div class="sched-script-actions">
+                <label class="sched-script-btn" style="cursor:pointer;">
+                  📂 파일 불러오기
+                  <input type="file" accept=".txt,.md" style="display:none" data-m="${month}" data-v="${vi}">
+                </label>
+                <button class="sched-script-btn" id="script-save-m${month}-v${vi}" data-m="${month}" data-v="${vi}">💾 저장</button>
+              </div>
+            </div>
+            <textarea class="sched-script-textarea" id="script-ta-m${month}-v${vi}"
+              placeholder="스크립트를 여기에 붙여넣거나 직접 작성하세요.&#10;슬라이드 전환 지점은 [슬라이드 2 — 0:30] 형식으로 표시하세요."
+            >${scriptText}</textarea>
+            <div class="sched-script-hint">슬라이드 전환 마커: [슬라이드 N — MM:SS] 형식으로 입력하면 텔레프롬프터에서 강조 표시됩니다.</div>
+            <button class="sched-teleprompter-btn" data-m="${month}" data-v="${vi}" data-title="${vid.num} ${vid.title}" ${!scriptText?'disabled':''}>
+              🎬 텔레프롬프터 시작
+            </button>
           </div>
         </div>
       `;
@@ -4934,9 +5068,92 @@ function renderSchedBoard() {
           const m = +el.dataset.m, v = +el.dataset.v, c = +el.dataset.c;
           const cur = _schedGetCheck(m, v, c);
           _schedSetCheck(m, v, c, !cur);
-          renderSchedBoard(); // 전체 리렌더
+          renderSchedBoard();
         });
       });
+
+      // 첨부 링크 추가 버튼
+      const attachAddBtn = card.querySelector('.sched-attach-btn');
+      if (attachAddBtn) {
+        attachAddBtn.addEventListener('click', e => {
+          e.stopPropagation();
+          const m = +attachAddBtn.dataset.m, v = +attachAddBtn.dataset.v;
+          const nameEl = document.getElementById(`attach-name-m${m}-v${v}`);
+          const urlEl  = document.getElementById(`attach-url-m${m}-v${v}`);
+          const name = nameEl.value.trim();
+          const url  = urlEl.value.trim();
+          if (!name || !url) { showToast('이름과 URL을 모두 입력하세요'); return; }
+          const key = `sched_attach_m${m}_v${v}`;
+          let list = [];
+          try { list = JSON.parse(localStorage.getItem(key) || '[]'); } catch {}
+          list.push({ name, url });
+          localStorage.setItem(key, JSON.stringify(list));
+          nameEl.value = ''; urlEl.value = '';
+          renderSchedBoard();
+          showToast('첨부 링크가 추가되었습니다');
+        });
+      }
+
+      // 첨부 링크 삭제 버튼
+      card.querySelectorAll('.sched-attach-del').forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.stopPropagation();
+          const ai = +btn.dataset.ai;
+          const key = `sched_attach_m${month}_v${vi}`;
+          let list = [];
+          try { list = JSON.parse(localStorage.getItem(key) || '[]'); } catch {}
+          list.splice(ai, 1);
+          localStorage.setItem(key, JSON.stringify(list));
+          renderSchedBoard();
+        });
+      });
+
+      // 스크립트 저장 버튼
+      const scriptSaveBtn = card.querySelector(`#script-save-m${month}-v${vi}`);
+      if (scriptSaveBtn) {
+        scriptSaveBtn.addEventListener('click', e => {
+          e.stopPropagation();
+          const m = +scriptSaveBtn.dataset.m, v = +scriptSaveBtn.dataset.v;
+          const ta = document.getElementById(`script-ta-m${m}-v${v}`);
+          localStorage.setItem(`sched_script_m${m}_v${v}`, ta.value);
+          showToast('스크립트가 저장되었습니다');
+          // 텔레프롬프터 버튼 활성화
+          const tpBtn = card.querySelector('.sched-teleprompter-btn');
+          if (tpBtn) tpBtn.disabled = !ta.value.trim();
+        });
+      }
+
+      // 스크립트 파일 불러오기
+      const fileInput = card.querySelector('input[type="file"]');
+      if (fileInput) {
+        fileInput.addEventListener('change', e => {
+          e.stopPropagation();
+          const file = fileInput.files[0];
+          if (!file) return;
+          const m = +fileInput.dataset.m, v = +fileInput.dataset.v;
+          const reader = new FileReader();
+          reader.onload = ev => {
+            const ta = document.getElementById(`script-ta-m${m}-v${v}`);
+            ta.value = ev.target.result;
+            localStorage.setItem(`sched_script_m${m}_v${v}`, ev.target.result);
+            showToast(`"${file.name}" 불러오기 완료`);
+            const tpBtn = card.querySelector('.sched-teleprompter-btn');
+            if (tpBtn) tpBtn.disabled = false;
+          };
+          reader.readAsText(file, 'UTF-8');
+        });
+      }
+
+      // 텔레프롬프터 시작 버튼
+      const tpStartBtn = card.querySelector('.sched-teleprompter-btn');
+      if (tpStartBtn) {
+        tpStartBtn.addEventListener('click', e => {
+          e.stopPropagation();
+          const m = +tpStartBtn.dataset.m, v = +tpStartBtn.dataset.v;
+          const script = localStorage.getItem(`sched_script_m${m}_v${v}`) || '';
+          openTeleprompter(tpStartBtn.dataset.title, script);
+        });
+      }
 
       panel.appendChild(card);
     });
@@ -4955,6 +5172,112 @@ function renderSchedBoard() {
   });
 }
 
+
+/* ═══════════════════════════════════════════════
+   TELEPROMPTER ENGINE
+   ═══════════════════════════════════════════════ */
+let _tpScrollTimer = null;
+let _tpPlaying = false;
+let _tpFontSize = 28;
+let _tpSpeed = 3;
+
+function openTeleprompter(title, script) {
+  if (!script.trim()) { showToast('스크립트를 먼저 저장하세요'); return; }
+
+  // 슬라이드 마커 파싱 및 HTML 변환
+  const html = script
+    .split('\n')
+    .map(line => {
+      const markerMatch = line.match(/^\[슬라이드\s*(\d+)\s*[—\-]\s*(\d+:\d+)\]/);
+      if (markerMatch) {
+        return `<span class="tp-slide-marker">🖼️ 슬라이드 ${markerMatch[1]}  ⏱ ${markerMatch[2]}</span>`;
+      }
+      return line ? `<span>${line}</span>` : '<span>&nbsp;</span>';
+    })
+    .join('\n');
+
+  // 오버레이 설정
+  document.getElementById('tp-ep-title').textContent = title;
+  document.getElementById('tp-content').innerHTML = html;
+  document.getElementById('tp-content').style.fontSize = _tpFontSize + 'px';
+  document.getElementById('tp-scroll-area').scrollTop = 0;
+  document.getElementById('tp-progress-fill').style.width = '0%';
+  document.getElementById('tp-speed').value = _tpSpeed;
+  document.getElementById('tp-speed-val').textContent = _tpSpeed;
+
+  _tpPlaying = false;
+  document.getElementById('tp-play-btn').textContent = '▶ 시작';
+
+  document.getElementById('teleprompter-overlay').classList.add('active');
+
+  // 전체화면 요청
+  const el = document.getElementById('teleprompter-overlay');
+  if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+}
+
+function _tpStartScroll() {
+  if (_tpScrollTimer) clearInterval(_tpScrollTimer);
+  const area = document.getElementById('tp-scroll-area');
+  const content = document.getElementById('tp-content');
+  _tpScrollTimer = setInterval(() => {
+    if (!_tpPlaying) return;
+    area.scrollTop += _tpSpeed * 0.4;
+    // 진행률 업데이트
+    const max = content.scrollHeight - area.clientHeight;
+    const pct = max > 0 ? Math.min(100, (area.scrollTop / max) * 100) : 0;
+    document.getElementById('tp-progress-fill').style.width = pct + '%';
+    // 끝에 도달
+    if (area.scrollTop >= max) {
+      _tpPlaying = false;
+      document.getElementById('tp-play-btn').textContent = '▶ 시작';
+      clearInterval(_tpScrollTimer);
+    }
+  }, 50);
+}
+
+function closeTeleprompter() {
+  _tpPlaying = false;
+  if (_tpScrollTimer) clearInterval(_tpScrollTimer);
+  document.getElementById('teleprompter-overlay').classList.remove('active');
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+}
+
+// 텔레프롬프터 컨트롤 이벤트
+document.getElementById('tp-play-btn').addEventListener('click', () => {
+  _tpPlaying = !_tpPlaying;
+  document.getElementById('tp-play-btn').textContent = _tpPlaying ? '⏸ 일시정지' : '▶ 시작';
+  if (_tpPlaying) _tpStartScroll();
+});
+
+document.getElementById('tp-close-btn').addEventListener('click', closeTeleprompter);
+
+document.getElementById('tp-speed').addEventListener('input', function() {
+  _tpSpeed = +this.value;
+  document.getElementById('tp-speed-val').textContent = _tpSpeed;
+});
+
+document.getElementById('tp-font-up').addEventListener('click', () => {
+  _tpFontSize = Math.min(60, _tpFontSize + 4);
+  document.getElementById('tp-content').style.fontSize = _tpFontSize + 'px';
+});
+
+document.getElementById('tp-font-down').addEventListener('click', () => {
+  _tpFontSize = Math.max(16, _tpFontSize - 4);
+  document.getElementById('tp-content').style.fontSize = _tpFontSize + 'px';
+});
+
+// 스페이스바 → 일시정지/재생, ESC → 닫기
+document.addEventListener('keydown', e => {
+  const overlay = document.getElementById('teleprompter-overlay');
+  if (!overlay.classList.contains('active')) return;
+  if (e.code === 'Space') {
+    e.preventDefault();
+    _tpPlaying = !_tpPlaying;
+    document.getElementById('tp-play-btn').textContent = _tpPlaying ? '⏸ 일시정지' : '▶ 시작';
+    if (_tpPlaying) _tpStartScroll();
+  }
+  if (e.code === 'Escape') closeTeleprompter();
+});
 
 /* ═══════════════════════════════════════════════
    ALARM SYSTEM (브라우저 알림)
