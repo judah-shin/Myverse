@@ -3985,8 +3985,8 @@ const KANBAN_COLS = {
 const DEFAULT_KANBAN_COLS = [{ id:'todo', name:'할 일', color:'#8E98CC' }, { id:'doing', name:'진행 중', color:'#A8C4FF' }, { id:'review', name:'검토', color:'#FFCA6E' }, { id:'done', name:'완료', color:'#7ED67E' }];
 function getKanbanCols(field) { return KANBAN_COLS[field] || DEFAULT_KANBAN_COLS; }
 
-let currentKanbanFields = new Set(['yt']); // 복수 선택 지원
-let _kanbanFirstField = 'yt'; // buildKanbanCard에서 참조용
+let currentKanbanFields = new Set([Object.keys(FIELDS)[0]]); // 첫 번째 분야로 초기화
+let _kanbanFirstField = Object.keys(FIELDS)[0];
 let dragCard = null, dragFromCol = null;
 
 function renderKanbanSelector() {
@@ -5615,6 +5615,9 @@ if (_initAdvanced) {
 _autoBackupIfNeeded(); // 하루 1회 자동 백업
 syncFields();
 Object.keys(FIELDS).forEach(k => activeFilters.add(k));
+// 칸반 초기 분야를 실제 FIELDS 첫 번째 키로 설정 (커스텀 분야 반영 후)
+currentKanbanFields = new Set([Object.keys(FIELDS)[0]]);
+_kanbanFirstField = Object.keys(FIELDS)[0];
 renderCardView();
 renderCaptureChips();
 renderKanban();
