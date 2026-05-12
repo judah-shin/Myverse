@@ -1651,7 +1651,9 @@ function renderCardView() {
         const proj = (node.projects || []).find(p => p.id === t.projId);
         if (!proj) return;
         proj.status = proj.status === 'done' ? 'todo' : 'done';
+        const _advanced = autoAdvanceRepeatProjects();
         syncAll();
+        if (_advanced) showToast('🔁 반복 프로젝트가 새 주기로 갱신되었습니다');
       } else {
         toggleTask(t.nodeId, t.id);
         renderCardView();
@@ -2689,13 +2691,12 @@ function autoAdvanceRepeatProjects() {
       const base = proj.dueDate || proj.startDate;
       if (!base) return;
 
-      // ✅ 완료(done) 상태이고 날짜가 오늘 이전일 때만 다음 주기로 갱신
-      // 미완료 상태면 날짜가 지나도 그대로 유지 (아직 못한 항목)
+      // 완료(done) 상태이고 날짜가 오늘 이하일 때 다음 주기로 갱신
       if (proj.status !== 'done') return;
 
       let safety = 0;
       // 다음 주기 날짜가 오늘 이후가 될 때까지 반복 (건너뛴 주기 처리)
-      while ((proj.dueDate || proj.startDate) < todayStr && safety < 365) {
+      while ((proj.dueDate || proj.startDate) <= todayStr && safety < 365) {
         safety++;
         const next = _calcNextRepeatDate(proj);
         if (!next) break;
@@ -2714,10 +2715,9 @@ function autoAdvanceRepeatProjects() {
     });
   });
 
-  if (changed) {
-    saveData();
-    showToast('🔁 반복 프로젝트가 새 주기로 자동 갱신되었습니다');
-  }
+  // 앱 시작 시 호출(changed=true)이면 saveData 후 toast
+  // syncAll() 직전 호출 시에는 saveData는 syncAll이 담당하므로 changed만 반환
+  return changed;
 }
 
 /* ── 모든 뷰 동기화 ── */
@@ -3118,7 +3118,9 @@ function buildProjectBlock(proj, node, color, isArchived) {
         todo.done = !todo.done;
         if (todo.done && proj.todos.every(t => t.done)) proj.status = 'done';
         else if (todo.done) proj.status = 'doing';
+        const _advanced = autoAdvanceRepeatProjects();
         syncAll();
+        if (_advanced) showToast('🔁 반복 프로젝트가 새 주기로 갱신되었습니다');
       });
 
       todoRow.addEventListener('click', e => {
@@ -4033,8 +4035,10 @@ function renderKanban() {
       const proj = (node.projects || []).find(p => p.id === dragCard.projId);
       if (!proj) return;
       proj.status = colToStatus(col.id);
+      const _advanced = autoAdvanceRepeatProjects();
       syncAll();
-      showToast(`"${proj.title}"을 "${col.name}"으로 이동했습니다`);
+      if (_advanced) showToast('🔁 반복 프로젝트가 새 주기로 갱신되었습니다');
+      else showToast(`"${proj.title}"을 "${col.name}"으로 이동했습니다`);
     });
 
     colEl.querySelector('.col-add-btn').addEventListener('click', () => openKanbanAddModal(col.id));
@@ -5478,7 +5482,12 @@ function getAlarmSummary() {
 }
 
 /* ─── INIT ─── */
-autoAdvanceRepeatProjects();
+const _initAdvanced = autoAdvanceRepeatProjects();
+if (_initAdvanced) {
+  saveData();
+  // syncAll 이후 toast 표시
+  setTimeout(() => showToast('🔁 반복 프로젝트가 새 주기로 자동 갱신되었습니다'), 300);
+}
 syncFields();
 Object.keys(FIELDS).forEach(k => activeFilters.add(k));
 renderCardView();
