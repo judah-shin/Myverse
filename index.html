@@ -737,7 +737,15 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   background: var(--bg2); transition: all .15s; user-select: none;
 }
 .home-archive-header:hover { border-color: var(--border2); background: var(--bg3); }
-.home-archive-count {
+.backup-btn { 
+  background: rgba(60,191,160,0.12); border: 1px solid rgba(60,191,160,0.25);
+  color: var(--c-yt); border-radius: var(--r1); padding: 6px 13px;
+  font-size: 12px; font-weight: 600; cursor: pointer; display:flex;
+  align-items:center; gap:5px; transition: all .15s; white-space:nowrap;
+}
+.backup-btn:hover { background: rgba(60,191,160,0.22); }
+.backup-toast-wrap { position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  z-index:9000;pointer-events:none; }
   margin-left: 2px; font-size: 11px; color: var(--text3);
   background: var(--bg3); padding: 1px 8px; border-radius: 10px;
 }
@@ -822,6 +830,13 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     <button class="capture-btn" id="open-capture-btn">
       <kbd>⌘K</kbd> 빠른 캡처
     </button>
+    <button class="backup-btn" id="manual-backup-btn" title="지금 바로 백업 파일 저장">
+      📤 백업
+    </button>
+    <label class="backup-btn" title="백업 파일에서 데이터 복원" style="cursor:pointer;">
+      📥 복원
+      <input type="file" id="restore-input" accept=".json" style="display:none;">
+    </label>
   </div>
 
   <!-- Main -->
@@ -5506,13 +5521,74 @@ function getAlarmSummary() {
   return list.sort((a, b) => a.time.localeCompare(b.time));
 }
 
-/* ─── INIT ─── */
+/* ═══════════════════════════════════════════════
+   BACKUP & RESTORE
+   ═══════════════════════════════════════════════ */
+const BACKUP_DATE_KEY = 'myverse_last_backup_date';
+
+function _doBackup(silent = false) {
+  try {
+    const data = localStorage.getItem('myverse_data') || '{}';
+    const blob = new Blob([data], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    const dateStr = _localToday().replace(/-/g, '');
+    a.href     = url;
+    a.download = `myverse_backup_${dateStr}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    localStorage.setItem(BACKUP_DATE_KEY, _localToday());
+    if (!silent) showToast('📤 백업 파일이 저장되었습니다');
+  } catch(e) {
+    showToast('백업 저장 실패: ' + e.message);
+  }
+}
+
+function _autoBackupIfNeeded() {
+  const lastBackup = localStorage.getItem(BACKUP_DATE_KEY) || '';
+  const today = _localToday();
+  if (lastBackup !== today) {
+    // 하루 1회 자동 백업 (앱 로드 후 2초 뒤 실행 — 렌더 완료 후)
+    setTimeout(() => {
+      _doBackup(true);
+      showToast('📤 오늘의 자동 백업이 완료되었습니다');
+    }, 2000);
+  }
+}
+
+// 수동 백업 버튼
+document.getElementById('manual-backup-btn').addEventListener('click', () => {
+  _doBackup(false);
+});
+
+// 복원 파일 선택
+document.getElementById('restore-input').addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const parsed = JSON.parse(ev.target.result);
+      if (!parsed.nodes) throw new Error('올바른 Myverse 백업 파일이 아닙니다.');
+      if (!confirm('현재 데이터를 백업 파일로 교체합니다. 계속할까요?')) return;
+      localStorage.setItem('myverse_data', JSON.stringify(parsed));
+      showToast('📥 복원 완료. 앱을 새로고침합니다...');
+      setTimeout(() => location.reload(), 1200);
+    } catch(e) {
+      showToast('복원 실패: ' + e.message);
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+  this.value = '';
+});
 const _initAdvanced = autoAdvanceRepeatProjects();
 if (_initAdvanced) {
   saveData();
-  // syncAll 이후 toast 표시
   setTimeout(() => showToast('🔁 반복 프로젝트가 새 주기로 자동 갱신되었습니다'), 300);
 }
+_autoBackupIfNeeded(); // 하루 1회 자동 백업
 syncFields();
 Object.keys(FIELDS).forEach(k => activeFilters.add(k));
 renderCardView();
