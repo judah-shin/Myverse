@@ -2678,7 +2678,22 @@ function _calcNextRepeatDate(proj) {
   return d.toISOString().slice(0, 10);
 }
 
-/* ── 반복 프로젝트 자동 갱신 (앱 실행 시 호출) ── */
+/* ── 공통 상태 업데이트 헬퍼: 하위 완료 시 상위 자동 체크 ── */
+function _updateProjStatusFromTodos(proj) {
+  if (!proj.todos || proj.todos.length === 0) return;
+  const allDone = proj.todos.every(t => t.done);
+  const anyDone = proj.todos.some(t => t.done);
+  if (allDone) proj.status = 'done';
+  else if (anyDone) proj.status = 'doing';
+  else proj.status = 'todo';
+}
+
+function _updateTodoDoneFromPlans(todo) {
+  if (!todo.plans || todo.plans.length === 0) return;
+  todo.done = todo.plans.every(p => p.done);
+}
+
+/* ── 반복 프로젝트 자동 갱신 (앱 실행 시 호출 + 완료 시 즉시 호출) ── */
 function autoAdvanceRepeatProjects() {
   const todayStr = new Date().toISOString().slice(0, 10);
   let changed = false;
@@ -2688,35 +2703,29 @@ function autoAdvanceRepeatProjects() {
       if (!proj.repeatAuto) return;
       if (!proj.repeat || proj.repeat === 'none') return;
       if (proj.archived) return;
-      const base = proj.dueDate || proj.startDate;
-      if (!base) return;
-
-      // 완료(done) 상태이고 날짜가 오늘 이하일 때 다음 주기로 갱신
+      if (!proj.dueDate && !proj.startDate) return;
       if (proj.status !== 'done') return;
 
-      let safety = 0;
-      // 다음 주기 날짜가 오늘 이후가 될 때까지 반복 (건너뛴 주기 처리)
-      while ((proj.dueDate || proj.startDate) <= todayStr && safety < 365) {
-        safety++;
-        const next = _calcNextRepeatDate(proj);
-        if (!next) break;
-        const duration = (proj.startDate && proj.dueDate)
-          ? _dateDiff(proj.startDate, proj.dueDate) : 0;
-        proj.startDate = next;
-        proj.dueDate   = duration > 0 ? _dateAdd(next, duration) : next;
-        proj.status    = 'todo';
-        // 할일·계획 체크 초기화
-        (proj.todos || []).forEach(t => {
-          t.done = false;
-          (t.plans || []).forEach(p => { p.done = false; });
-        });
-        changed = true;
-      }
+      // 다음 주기 날짜 계산
+      const next = _calcNextRepeatDate(proj);
+      if (!next) return;
+
+      // 다음 주기 날짜가 오늘보다 미래여야만 갱신 (오늘 마감 완료 시에도 안전)
+      if (next <= todayStr) return;
+
+      const duration = (proj.startDate && proj.dueDate)
+        ? _dateDiff(proj.startDate, proj.dueDate) : 0;
+      proj.startDate = next;
+      proj.dueDate   = duration > 0 ? _dateAdd(next, duration) : next;
+      proj.status    = 'todo';
+      (proj.todos || []).forEach(t => {
+        t.done = false;
+        (t.plans || []).forEach(p => { p.done = false; });
+      });
+      changed = true;
     });
   });
 
-  // 앱 시작 시 호출(changed=true)이면 saveData 후 toast
-  // syncAll() 직전 호출 시에는 saveData는 syncAll이 담당하므로 changed만 반환
   return changed;
 }
 
@@ -3116,8 +3125,7 @@ function buildProjectBlock(proj, node, color, isArchived) {
       cb.addEventListener('click', e => {
         e.stopPropagation();
         todo.done = !todo.done;
-        if (todo.done && proj.todos.every(t => t.done)) proj.status = 'done';
-        else if (todo.done) proj.status = 'doing';
+        _updateProjStatusFromTodos(proj);
         const _advanced = autoAdvanceRepeatProjects();
         syncAll();
         if (_advanced) showToast('🔁 반복 프로젝트가 새 주기로 갱신되었습니다');
@@ -3255,7 +3263,13 @@ function renderPlans(plansEl, todo, color, proj, node, isArchived) {
       planCb.addEventListener('click', e => {
         e.stopPropagation();
         plan.done = !plan.done;
+        // 세부계획 모두 완료 시 할 일 자동 체크
+        _updateTodoDoneFromPlans(todo);
+        // 할 일 상태에 따라 프로젝트 상태 자동 업데이트
+        _updateProjStatusFromTodos(proj);
+        const _advanced = autoAdvanceRepeatProjects();
         syncAll();
+        if (_advanced) showToast('🔁 반복 프로젝트가 새 주기로 갱신되었습니다');
       });
     }
 
