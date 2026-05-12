@@ -1422,7 +1422,7 @@ const DEFAULT_DATA = {
 
 function getTodayPlus(days) {
   const d = new Date(); d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
+  return _localDateStr(d);
 }
 
 function loadData() {
@@ -1488,7 +1488,7 @@ navTabs.forEach(tab => {
    CARD VIEW
    ═══════════════════════════════════════════════ */
 function getTodayTasks() {
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = _localToday();
   const items = [];
 
   // 날짜 범위 체크 헬퍼
@@ -2640,10 +2640,24 @@ function deleteField(key) {
 }
 
 /* ── 반복 날짜 계산 헬퍼 ── */
+// 로컬 시간 기준 오늘 날짜 반환 (toISOString은 UTC 기준이라 한국에서 날짜 오차 발생)
+function _localToday() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+function _localDateStr(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 function _dateAdd(dateStr, days) {
   const d = new Date(dateStr + 'T00:00:00');
   d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
+  return _localDateStr(d);
 }
 function _dateDiff(startStr, endStr) {
   const s = new Date(startStr + 'T00:00:00');
@@ -2656,24 +2670,27 @@ function _calcNextRepeatDate(proj) {
   const d = new Date(base + 'T00:00:00');
   if (proj.repeat === 'daily') {
     d.setDate(d.getDate() + 1);
+    return _localDateStr(d);
   } else if (proj.repeat === 'weekly' || proj.repeat === 'biweekly') {
     const interval = proj.repeat === 'biweekly' ? 14 : 7;
     const wds = proj.repeatWeekdays && proj.repeatWeekdays.length > 0
       ? proj.repeatWeekdays.slice().sort((a,b)=>a-b) : [d.getDay()];
-    // 오늘 이후 가장 가까운 지정 요일 (격주는 interval 이후부터 탐색)
+    // base 다음날부터 지정 요일 탐색
     const searchFrom = new Date(d);
-    searchFrom.setDate(d.getDate() + (proj.repeat === 'biweekly' ? interval - 6 : 1));
-    let next = new Date(searchFrom);
+    searchFrom.setDate(d.getDate() + 1);
     for (let i = 0; i <= interval + 7; i++) {
-      next = new Date(searchFrom);
+      const next = new Date(searchFrom);
       next.setDate(searchFrom.getDate() + i);
-      if (wds.includes(next.getDay())) break;
+      if (wds.includes(next.getDay())) return _localDateStr(next);
     }
-    return next.toISOString().slice(0, 10);
+    // fallback: 7일 후
+    const fallback = new Date(d);
+    fallback.setDate(d.getDate() + interval);
+    return _localDateStr(fallback);
   } else if (proj.repeat === 'monthly') {
     d.setMonth(d.getMonth() + 1);
   }
-  return d.toISOString().slice(0, 10);
+  return _localDateStr(d);
 }
 
 /* ── 공통 상태 업데이트 헬퍼: 하위 완료 시 상위 자동 체크 ── */
@@ -2693,7 +2710,7 @@ function _updateTodoDoneFromPlans(todo) {
 
 /* ── 반복 프로젝트 자동 갱신 (앱 실행 시 + 완료 시 즉시 호출) ── */
 function autoAdvanceRepeatProjects() {
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = _localToday();
   let changed = false;
 
   state.nodes.forEach(node => {
@@ -2715,12 +2732,10 @@ function autoAdvanceRepeatProjects() {
         safety++;
         const next = _calcNextRepeatDate(proj);
         if (!next) break;
-        // 임시로 날짜를 next로 이동해서 다음 주기 탐색
         const duration = (proj.startDate && proj.dueDate)
           ? _dateDiff(proj.startDate, proj.dueDate) : 0;
         proj.startDate = next;
         proj.dueDate   = duration > 0 ? _dateAdd(next, duration) : next;
-        // 다음 주기가 오늘보다 미래면 확정
         if (next > todayStr) break;
       }
 
@@ -2836,7 +2851,7 @@ document.querySelectorAll('.due-preset').forEach(btn => {
       document.getElementById('due-date-input').value = '';
     } else {
       const d = new Date(); d.setDate(d.getDate() + days);
-      document.getElementById('due-date-input').value = d.toISOString().slice(0, 10);
+      document.getElementById('due-date-input').value = _localDateStr(d);
     }
   });
 });
@@ -3071,7 +3086,7 @@ function buildProjectBlock(proj, node, color, isArchived) {
     }
 
     proj.archived = true;
-    proj.archivedAt = new Date().toISOString().slice(0, 10);
+    proj.archivedAt = _localToday();
     syncAll();
     showToast(`"${proj.title}"이 완료 보관함으로 이동되었습니다`);
   });
@@ -4198,7 +4213,7 @@ function renderCalGrid() {
   const firstDay    = new Date(calYear, calMonth, 1).getDay();
   const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
   const daysInPrev  = new Date(calYear, calMonth, 0).getDate();
-  const todayStr    = today.toISOString().slice(0, 10);
+  const todayStr    = _localToday();
   const totalCells  = Math.ceil((firstDay + daysInMonth) / 7) * 7;
 
   /* ── 1. 셀 DOM 생성 + dateStr→el Map ── */
@@ -5440,7 +5455,7 @@ function checkAlarms() {
   if (Notification.permission !== 'granted') return;
 
   const now      = new Date();
-  const todayStr = now.toISOString().slice(0, 10);
+  const todayStr = _localToday();
   const hh       = String(now.getHours()).padStart(2, '0');
   const mm       = String(now.getMinutes()).padStart(2, '0');
   const nowTime  = `${hh}:${mm}`;
@@ -5481,7 +5496,7 @@ function checkAlarms() {
 
 function getAlarmSummary() {
   // 오늘 알람 목록 반환 (설정 확인용)
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = _localToday();
   const list = [];
   state.nodes.forEach(node => {
     const f = FIELDS[node.field];
