@@ -4938,6 +4938,13 @@ let _schedCurrentMonth = 1;
 function renderSchedBoard() {
   const container = document.getElementById('sched-panels');
   if (!container) return;
+
+  // 재렌더 전 열린 카드 인덱스 저장
+  const openCards = new Set();
+  container.querySelectorAll('.sched-week.open').forEach(el => {
+    openCards.add(el.dataset.cardKey);
+  });
+
   container.innerHTML = '';
 
   [1, 2, 3].forEach(month => {
@@ -4997,7 +5004,11 @@ function renderSchedBoard() {
       const allDone = customChecks.length > 0 && pct === 100;
 
       const card = document.createElement('div');
+      const cardKey = `m${month}-v${vi}`;
       card.className = 'sched-week';
+      card.dataset.cardKey = cardKey;
+      // 이전 열린 상태 복원
+      if (openCards.has(cardKey)) card.classList.add('open');
 
       const checksHtml = customChecks.map((chk, ci) => {
         const done = _schedGetCheck(month, vi, ci);
