@@ -1651,9 +1651,7 @@ function renderCardView() {
         const proj = (node.projects || []).find(p => p.id === t.projId);
         if (!proj) return;
         proj.status = proj.status === 'done' ? 'todo' : 'done';
-        const _advanced = autoAdvanceRepeatProjects();
         syncAll();
-        if (_advanced) showToast('🔁 반복 프로젝트가 새 주기로 갱신되었습니다');
       } else {
         toggleTask(t.nodeId, t.id);
         renderCardView();
@@ -2693,7 +2691,7 @@ function _updateTodoDoneFromPlans(todo) {
   todo.done = todo.plans.every(p => p.done);
 }
 
-/* ── 반복 프로젝트 자동 갱신 (앱 실행 시 호출 + 완료 시 즉시 호출) ── */
+/* ── 반복 프로젝트 자동 갱신 (앱 실행 시 + 완료 시 즉시 호출) ── */
 function autoAdvanceRepeatProjects() {
   const todayStr = new Date().toISOString().slice(0, 10);
   let changed = false;
@@ -2703,21 +2701,30 @@ function autoAdvanceRepeatProjects() {
       if (!proj.repeatAuto) return;
       if (!proj.repeat || proj.repeat === 'none') return;
       if (proj.archived) return;
-      if (!proj.dueDate && !proj.startDate) return;
       if (proj.status !== 'done') return;
 
-      // 다음 주기 날짜 계산
-      const next = _calcNextRepeatDate(proj);
-      if (!next) return;
+      // 날짜가 없으면 오늘 기준으로 초기화
+      if (!proj.dueDate && !proj.startDate) {
+        proj.startDate = todayStr;
+        proj.dueDate   = todayStr;
+      }
 
-      // 다음 주기 날짜가 오늘보다 미래여야만 갱신 (오늘 마감 완료 시에도 안전)
-      if (next <= todayStr) return;
+      // 건너뛴 주기 포함, 다음 주기 날짜가 오늘보다 미래가 될 때까지 반복 계산
+      let safety = 0;
+      while (safety < 365) {
+        safety++;
+        const next = _calcNextRepeatDate(proj);
+        if (!next) break;
+        // 임시로 날짜를 next로 이동해서 다음 주기 탐색
+        const duration = (proj.startDate && proj.dueDate)
+          ? _dateDiff(proj.startDate, proj.dueDate) : 0;
+        proj.startDate = next;
+        proj.dueDate   = duration > 0 ? _dateAdd(next, duration) : next;
+        // 다음 주기가 오늘보다 미래면 확정
+        if (next > todayStr) break;
+      }
 
-      const duration = (proj.startDate && proj.dueDate)
-        ? _dateDiff(proj.startDate, proj.dueDate) : 0;
-      proj.startDate = next;
-      proj.dueDate   = duration > 0 ? _dateAdd(next, duration) : next;
-      proj.status    = 'todo';
+      proj.status = 'todo';
       (proj.todos || []).forEach(t => {
         t.done = false;
         (t.plans || []).forEach(p => { p.done = false; });
@@ -3126,9 +3133,7 @@ function buildProjectBlock(proj, node, color, isArchived) {
         e.stopPropagation();
         todo.done = !todo.done;
         _updateProjStatusFromTodos(proj);
-        const _advanced = autoAdvanceRepeatProjects();
         syncAll();
-        if (_advanced) showToast('🔁 반복 프로젝트가 새 주기로 갱신되었습니다');
       });
 
       todoRow.addEventListener('click', e => {
@@ -3267,9 +3272,7 @@ function renderPlans(plansEl, todo, color, proj, node, isArchived) {
         _updateTodoDoneFromPlans(todo);
         // 할 일 상태에 따라 프로젝트 상태 자동 업데이트
         _updateProjStatusFromTodos(proj);
-        const _advanced = autoAdvanceRepeatProjects();
         syncAll();
-        if (_advanced) showToast('🔁 반복 프로젝트가 새 주기로 갱신되었습니다');
       });
     }
 
@@ -4049,10 +4052,8 @@ function renderKanban() {
       const proj = (node.projects || []).find(p => p.id === dragCard.projId);
       if (!proj) return;
       proj.status = colToStatus(col.id);
-      const _advanced = autoAdvanceRepeatProjects();
       syncAll();
-      if (_advanced) showToast('🔁 반복 프로젝트가 새 주기로 갱신되었습니다');
-      else showToast(`"${proj.title}"을 "${col.name}"으로 이동했습니다`);
+      showToast(`"${proj.title}"을 "${col.name}"으로 이동했습니다`);
     });
 
     colEl.querySelector('.col-add-btn').addEventListener('click', () => openKanbanAddModal(col.id));
