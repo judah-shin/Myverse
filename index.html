@@ -205,15 +205,27 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .sched-week.open .sched-chevron { transform:rotate(180deg); }
 .sched-week-bd { display:none;padding:0 16px 14px;border-top:1px solid var(--border); }
 .sched-week.open .sched-week-bd { display:block; }
-.sched-week-meta { font-size:11px;color:var(--text3);margin:10px 0 12px; }
+.sched-week-meta { font-size:15px;color:var(--text3);margin:10px 0 12px; }
 .sched-checklist { display:flex;flex-direction:column;gap:4px; }
-.sched-check { display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;transition:background .12s; }
+.sched-check { display:flex;align-items:center;gap:10px;padding:8px 8px;border-radius:6px;transition:background .12s; }
 .sched-check:hover { background:var(--bg3); }
-.sched-check-box { width:15px;height:15px;border:1.5px solid var(--text3);border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s; }
+.sched-check-box { width:20px;height:20px;border:1.5px solid var(--text3);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;cursor:pointer; }
 .sched-check.done .sched-check-box { background:var(--c-yt);border-color:var(--c-yt); }
-.sched-check.done .sched-check-box::after { content:'✓';color:#1A2E45;font-size:9px;font-weight:700; }
-.sched-check-text { font-size:12px;color:var(--text2); }
+.sched-check.done .sched-check-box::after { content:'✓';color:#1A2E45;font-size:12px;font-weight:700; }
+.sched-check-text { font-size:16px;color:var(--text2);flex:1; }
 .sched-check.done .sched-check-text { color:var(--text3);text-decoration:line-through; }
+.sched-check-edit-input { flex:1;background:var(--bg);border:1px solid var(--c-yt);border-radius:5px;padding:3px 8px;font-size:15px;color:var(--text);font-family:inherit;outline:none; }
+.sched-check-actions { display:flex;gap:4px;flex-shrink:0;opacity:0;transition:opacity .15s; }
+.sched-check:hover .sched-check-actions { opacity:1; }
+.sched-check-action-btn { background:none;border:none;cursor:pointer;font-size:13px;padding:2px 5px;border-radius:4px;color:var(--text3);transition:all .12s; }
+.sched-check-action-btn:hover { background:var(--bg3); }
+.sched-check-action-btn.edit:hover { color:var(--accent); }
+.sched-check-action-btn.del:hover { color:#E07070; }
+.sched-check-add-row { display:flex;gap:6px;margin-top:8px;padding:0 4px; }
+.sched-check-add-input { flex:1;background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:7px 11px;font-size:14px;color:var(--text);outline:none;font-family:inherit; }
+.sched-check-add-input:focus { border-color:var(--c-yt); }
+.sched-check-add-btn { padding:7px 14px;border-radius:6px;background:rgba(60,191,160,0.12);color:var(--c-yt);border:1px solid rgba(60,191,160,0.25);font-size:14px;cursor:pointer;font-weight:600;white-space:nowrap; }
+.sched-check-add-btn:hover { background:rgba(60,191,160,0.22); }
 .sched-progress { height:4px;background:var(--bg3);border-radius:2px;margin-top:10px;overflow:hidden; }
 .sched-progress-fill { height:100%;background:var(--c-yt);border-radius:2px;transition:width .3s; }
 /* ─── 스케줄 보드 확장: 스크립트·첨부·텔레프롬프터 ─── */
@@ -221,31 +233,31 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 
 /* 첨부 링크 영역 */
 .sched-attach-area { margin-top:14px;padding-top:12px;border-top:1px solid var(--border); }
-.sched-attach-title { font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;gap:6px; }
+.sched-attach-title { font-size:15px;font-weight:600;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;gap:6px; }
 .sched-attach-list { display:flex;flex-direction:column;gap:5px;margin-bottom:8px; }
-.sched-attach-item { display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--bg3);border-radius:7px;font-size:12px; }
-.sched-attach-icon { font-size:13px;flex-shrink:0; }
+.sched-attach-item { display:flex;align-items:center;gap:6px;padding:7px 10px;background:var(--bg3);border-radius:7px;font-size:15px; }
+.sched-attach-icon { font-size:16px;flex-shrink:0; }
 .sched-attach-name { flex:1;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;text-decoration:none; }
 .sched-attach-name:hover { color:var(--accent); }
-.sched-attach-del { background:none;border:none;cursor:pointer;color:var(--text3);font-size:11px;padding:0 3px;opacity:.6;flex-shrink:0; }
+.sched-attach-del { background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:0 3px;opacity:.6;flex-shrink:0; }
 .sched-attach-del:hover { opacity:1;color:#E07070; }
 .sched-attach-form { display:flex;gap:5px;flex-wrap:wrap;margin-top:4px; }
-.sched-attach-input { flex:1;min-width:100px;background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:5px 9px;font-size:11px;color:var(--text);outline:none;font-family:inherit; }
+.sched-attach-input { flex:1;min-width:100px;background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:7px 11px;font-size:14px;color:var(--text);outline:none;font-family:inherit; }
 .sched-attach-input:focus { border-color:var(--accent); }
-.sched-attach-btn { padding:5px 11px;border-radius:6px;background:rgba(123,159,224,0.15);color:var(--accent);border:1px solid rgba(123,159,224,0.25);font-size:11px;cursor:pointer;font-weight:600;white-space:nowrap; }
+.sched-attach-btn { padding:7px 14px;border-radius:6px;background:rgba(123,159,224,0.15);color:var(--accent);border:1px solid rgba(123,159,224,0.25);font-size:14px;cursor:pointer;font-weight:600;white-space:nowrap; }
 .sched-attach-btn:hover { background:rgba(123,159,224,0.25); }
 
 /* 스크립트 영역 */
 .sched-script-area { margin-top:14px;padding-top:12px;border-top:1px solid var(--border); }
-.sched-script-title { font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:6px; }
+.sched-script-title { font-size:15px;font-weight:600;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:6px; }
 .sched-script-actions { display:flex;gap:5px;align-items:center; }
-.sched-script-btn { padding:3px 10px;border-radius:5px;background:rgba(60,191,160,0.12);color:var(--c-yt);border:1px solid rgba(60,191,160,0.25);font-size:10px;cursor:pointer;font-weight:600; }
+.sched-script-btn { padding:5px 13px;border-radius:5px;background:rgba(60,191,160,0.12);color:var(--c-yt);border:1px solid rgba(60,191,160,0.25);font-size:13px;cursor:pointer;font-weight:600; }
 .sched-script-btn:hover { background:rgba(60,191,160,0.22); }
-.sched-script-textarea { width:100%;min-height:140px;background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text2);font-family:'Pretendard',inherit;line-height:1.7;outline:none;resize:vertical;box-sizing:border-box; }
+.sched-script-textarea { width:100%;min-height:180px;background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:12px 14px;font-size:16px;color:var(--text2);font-family:'Pretendard',inherit;line-height:1.8;outline:none;resize:vertical;box-sizing:border-box; }
 .sched-script-textarea:focus { border-color:var(--c-yt); }
 .sched-script-textarea::placeholder { color:var(--text3); }
-.sched-script-hint { font-size:10px;color:var(--text3);margin-top:5px; }
-.sched-teleprompter-btn { width:100%;margin-top:10px;padding:9px;border-radius:8px;background:rgba(60,191,160,0.15);color:var(--c-yt);border:1px solid rgba(60,191,160,0.3);font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s; }
+.sched-script-hint { font-size:13px;color:var(--text3);margin-top:5px; }
+.sched-teleprompter-btn { width:100%;margin-top:10px;padding:12px;border-radius:8px;background:rgba(60,191,160,0.15);color:var(--c-yt);border:1px solid rgba(60,191,160,0.3);font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s; }
 .sched-teleprompter-btn:hover { background:rgba(60,191,160,0.25);transform:translateY(-1px); }
 .sched-teleprompter-btn:disabled { opacity:.4;cursor:not-allowed;transform:none; }
 
@@ -4937,7 +4949,11 @@ function renderSchedBoard() {
     // 요약 카드
     let totalChecks = 0, doneChecks = 0;
     data.videos.forEach((vid, vi) => {
-      vid.checks.forEach((_, ci) => {
+      const checksKey = `sched_checks_m${month}_v${vi}`;
+      let customList = [];
+      try { customList = JSON.parse(localStorage.getItem(checksKey) || '[]'); } catch {}
+      if (!customList.length) customList = vid.checks.map(t => ({ text: t }));
+      customList.forEach((_, ci) => {
         totalChecks++;
         if (_schedGetCheck(month, vi, ci)) doneChecks++;
       });
@@ -4966,18 +4982,32 @@ function renderSchedBoard() {
 
     // 영상별 카드
     data.videos.forEach((vid, vi) => {
-      const checksDone = vid.checks.filter((_, ci) => _schedGetCheck(month, vi, ci)).length;
-      const pct = vid.checks.length === 0 ? 0 : Math.round(checksDone / vid.checks.length * 100);
-      const allDone = pct === 100;
+      // 체크 항목: SCHED_DATA 기본값 + localStorage 커스텀 항목 병합
+      const checksKey = `sched_checks_m${month}_v${vi}`;
+      let customChecks = null;
+      try { customChecks = JSON.parse(localStorage.getItem(checksKey)); } catch {}
+      // 처음 로드 시 SCHED_DATA 기본값을 localStorage에 저장
+      if (!customChecks) {
+        customChecks = vid.checks.map(text => ({ text }));
+        localStorage.setItem(checksKey, JSON.stringify(customChecks));
+      }
+
+      const checksDone = customChecks.filter((_, ci) => _schedGetCheck(month, vi, ci)).length;
+      const pct = customChecks.length === 0 ? 0 : Math.round(checksDone / customChecks.length * 100);
+      const allDone = customChecks.length > 0 && pct === 100;
 
       const card = document.createElement('div');
       card.className = 'sched-week';
 
-      const checksHtml = vid.checks.map((chk, ci) => {
+      const checksHtml = customChecks.map((chk, ci) => {
         const done = _schedGetCheck(month, vi, ci);
         return `<div class="sched-check${done ? ' done' : ''}" data-m="${month}" data-v="${vi}" data-c="${ci}">
           <div class="sched-check-box"></div>
-          <div class="sched-check-text">${chk}</div>
+          <div class="sched-check-text">${chk.text}</div>
+          <div class="sched-check-actions">
+            <button class="sched-check-action-btn edit" data-ci="${ci}" title="수정">✏️</button>
+            <button class="sched-check-action-btn del" data-ci="${ci}" title="삭제">🗑</button>
+          </div>
         </div>`;
       }).join('');
 
@@ -5010,12 +5040,16 @@ function renderSchedBoard() {
           <span class="sched-week-num">${vid.num}</span>
           <span class="sched-week-title">${vid.title}</span>
           <span class="sched-pillar-tag" style="color:${vid.pillarColor};border-color:${vid.pillarColor}">${vid.pillar}</span>
-          <span class="sched-status-badge" style="background:${allDone?'rgba(60,191,160,0.18)':'var(--bg3)'};color:${allDone?'var(--c-yt)':'var(--text3)'}">${allDone?'✓ 완료':checksDone+'/'+vid.checks.length}</span>
+          <span class="sched-status-badge" style="background:${allDone?'rgba(60,191,160,0.18)':'var(--bg3)'};color:${allDone?'var(--c-yt)':'var(--text3)'}">${allDone?'✓ 완료':checksDone+'/'+customChecks.length}</span>
           <span class="sched-chevron">▼</span>
         </div>
         <div class="sched-week-bd" id="${cardId}">
           <div class="sched-week-meta">${vid.meta}</div>
           <div class="sched-checklist">${checksHtml}</div>
+          <div class="sched-check-add-row">
+            <input class="sched-check-add-input" placeholder="+ 새 항목 추가 후 Enter" data-m="${month}" data-v="${vi}">
+            <button class="sched-check-add-btn" data-m="${month}" data-v="${vi}">추가</button>
+          </div>
           <div class="sched-progress" style="margin-top:12px">
             <div class="sched-progress-fill" style="width:${pct}%"></div>
           </div>
@@ -5061,16 +5095,90 @@ function renderSchedBoard() {
         card.classList.toggle('open');
       });
 
-      // 체크박스 클릭
-      card.querySelectorAll('.sched-check').forEach(el => {
-        el.addEventListener('click', e => {
+      // 체크박스 토글 (체크박스 박스 영역만)
+      card.querySelectorAll('.sched-check-box').forEach(box => {
+        box.addEventListener('click', e => {
           e.stopPropagation();
+          const el = box.closest('.sched-check');
           const m = +el.dataset.m, v = +el.dataset.v, c = +el.dataset.c;
-          const cur = _schedGetCheck(m, v, c);
-          _schedSetCheck(m, v, c, !cur);
+          _schedSetCheck(m, v, c, !_schedGetCheck(m, v, c));
           renderSchedBoard();
         });
       });
+
+      // 체크 항목 수정 버튼
+      card.querySelectorAll('.sched-check-action-btn.edit').forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.stopPropagation();
+          const ci = +btn.dataset.ci;
+          const checksKey = `sched_checks_m${month}_v${vi}`;
+          let list = [];
+          try { list = JSON.parse(localStorage.getItem(checksKey) || '[]'); } catch {}
+          const textEl = btn.closest('.sched-check').querySelector('.sched-check-text');
+          const actionsEl = btn.closest('.sched-check-actions');
+          // 인라인 편집 입력창으로 전환
+          const input = document.createElement('input');
+          input.className = 'sched-check-edit-input';
+          input.value = list[ci]?.text || '';
+          textEl.replaceWith(input);
+          input.focus();
+          actionsEl.innerHTML = `
+            <button class="sched-check-action-btn confirm-edit" style="color:var(--c-yt)">✔</button>
+            <button class="sched-check-action-btn cancel-edit" style="color:var(--text3)">✕</button>
+          `;
+          const confirmEdit = () => {
+            const newText = input.value.trim();
+            if (newText) { list[ci].text = newText; localStorage.setItem(checksKey, JSON.stringify(list)); }
+            renderSchedBoard();
+          };
+          actionsEl.querySelector('.confirm-edit').addEventListener('click', e => { e.stopPropagation(); confirmEdit(); });
+          actionsEl.querySelector('.cancel-edit').addEventListener('click', e => { e.stopPropagation(); renderSchedBoard(); });
+          input.addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.stopPropagation(); confirmEdit(); }
+            if (e.key === 'Escape') { e.stopPropagation(); renderSchedBoard(); }
+          });
+        });
+      });
+
+      // 체크 항목 삭제 버튼
+      card.querySelectorAll('.sched-check-action-btn.del').forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.stopPropagation();
+          const ci = +btn.dataset.ci;
+          const checksKey = `sched_checks_m${month}_v${vi}`;
+          let list = [];
+          try { list = JSON.parse(localStorage.getItem(checksKey) || '[]'); } catch {}
+          list.splice(ci, 1);
+          localStorage.setItem(checksKey, JSON.stringify(list));
+          // 체크 상태 키 재정렬 (삭제된 인덱스 이후 항목 당기기)
+          for (let i = ci; i < list.length; i++) {
+            const next = _schedGetCheck(month, vi, i + 1);
+            _schedSetCheck(month, vi, i, next);
+          }
+          _schedSetCheck(month, vi, list.length, false);
+          renderSchedBoard();
+        });
+      });
+
+      // 체크 항목 추가 (버튼 + Enter)
+      const addInput = card.querySelector('.sched-check-add-input');
+      const addBtn   = card.querySelector('.sched-check-add-btn');
+      const doAddCheck = () => {
+        if (!addInput) return;
+        const text = addInput.value.trim();
+        if (!text) return;
+        const checksKey = `sched_checks_m${month}_v${vi}`;
+        let list = [];
+        try { list = JSON.parse(localStorage.getItem(checksKey) || '[]'); } catch {}
+        list.push({ text });
+        localStorage.setItem(checksKey, JSON.stringify(list));
+        renderSchedBoard();
+      };
+      if (addBtn) addBtn.addEventListener('click', e => { e.stopPropagation(); doAddCheck(); });
+      if (addInput) {
+        addInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.stopPropagation(); doAddCheck(); } });
+        addInput.addEventListener('click', e => e.stopPropagation());
+      }
 
       // 첨부 링크 추가 버튼
       const attachAddBtn = card.querySelector('.sched-attach-btn');
