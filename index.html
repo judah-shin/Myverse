@@ -3985,7 +3985,8 @@ const KANBAN_COLS = {
 const DEFAULT_KANBAN_COLS = [{ id:'todo', name:'할 일', color:'#8E98CC' }, { id:'doing', name:'진행 중', color:'#A8C4FF' }, { id:'review', name:'검토', color:'#FFCA6E' }, { id:'done', name:'완료', color:'#7ED67E' }];
 function getKanbanCols(field) { return KANBAN_COLS[field] || DEFAULT_KANBAN_COLS; }
 
-let currentKanbanField = 'yt';
+let currentKanbanFields = new Set(['yt']); // 복수 선택 지원
+let _kanbanFirstField = 'yt'; // buildKanbanCard에서 참조용
 let dragCard = null, dragFromCol = null;
 
 function renderKanbanSelector() {
@@ -3993,11 +3994,21 @@ function renderKanbanSelector() {
   sel.innerHTML = '';
   Object.entries(FIELDS).forEach(([key, f]) => {
     const btn = document.createElement('button');
-    const isActive = key === currentKanbanField;
+    const isActive = currentKanbanFields.has(key);
     btn.className = `kanban-tab${isActive ? ' active' : ''}`;
-    btn.style.cssText = isActive ? `background:${f.color};color:${luminance(f.color)<0.4?'#fff':'#222'};border-color:transparent` : '';
+    btn.style.cssText = isActive
+      ? `background:${f.color};color:${luminance(f.color)<0.4?'#fff':'#222'};border-color:transparent`
+      : '';
     btn.textContent = f.icon + ' ' + f.label;
-    btn.addEventListener('click', () => { currentKanbanField = key; renderKanban(); });
+    btn.addEventListener('click', () => {
+      if (currentKanbanFields.has(key)) {
+        // 마지막 하나 남은 경우 해제 안 되도록
+        if (currentKanbanFields.size > 1) currentKanbanFields.delete(key);
+      } else {
+        currentKanbanFields.add(key);
+      }
+      renderKanban();
+    });
     sel.appendChild(btn);
   });
 }
@@ -4021,12 +4032,13 @@ function colToStatus(colId) {
   return 'todo';
 }
 
-/* ── projects 전체 수집 (현재 분야의 모든 노드) ── */
-function getProjectsForField(field) {
+/* ── projects 전체 수집 (선택된 분야들의 모든 노드) ── */
+function getProjectsForField(fields) {
+  const fieldSet = fields instanceof Set ? fields : new Set([fields]);
   const result = [];
-  state.nodes.filter(n => n.field === field).forEach(node => {
+  state.nodes.filter(n => fieldSet.has(n.field)).forEach(node => {
     (node.projects || []).forEach(proj => {
-      if (proj.archived) return; // 완료 보관함 항목은 칸반에서 제외
+      if (proj.archived) return;
       result.push({ ...proj, _nodeId: node.id, _nodeLabel: node.label });
     });
   });
@@ -4037,10 +4049,12 @@ function renderKanban() {
   renderKanbanSelector();
   const board = document.getElementById('kanban-board');
   board.innerHTML = '';
-  const cols = getKanbanCols(currentKanbanField);
+  // 복수 분야 선택 시 첫 번째 분야의 컬럼 구조 사용
+  _kanbanFirstField = [...currentKanbanFields][0];
+  const cols = getKanbanCols(_kanbanFirstField);
 
-  // projects 기반으로 카드 목록 생성
-  const allProjects = getProjectsForField(currentKanbanField);
+  // 선택된 모든 분야의 프로젝트 수집
+  const allProjects = getProjectsForField(currentKanbanFields);
 
   cols.forEach(col => {
     const colProjects = allProjects.filter(p => projStatusToCol(p.status) === col.id);
@@ -4089,7 +4103,11 @@ function buildKanbanCard(proj, col) {
   const el = document.createElement('div');
   el.className = 'kanban-card';
   el.draggable = true;
-  const f = FIELDS[currentKanbanField];
+  // 복수 선택 시 카드 자신의 분야 색상 사용
+  const cardField = Object.keys(FIELDS).find(k =>
+    state.nodes.some(n => n.field === k && n.id === proj._nodeId)
+  );
+  const f = FIELDS[cardField] || FIELDS[_kanbanFirstField] || Object.values(FIELDS)[0];
 
   // 할 일 진행률 계산
   const todos = proj.todos || [];
@@ -4097,10 +4115,15 @@ function buildKanbanCard(proj, col) {
   const doneTodos = todos.filter(t => t.done).length;
   const pct = totalTodos > 0 ? Math.round(doneTodos / totalTodos * 100) : null;
 
+  // 복수 분야 선택 시 분야명 배지 추가
+  const fieldBadge = currentKanbanFields.size > 1
+    ? `<span class="kc-tag" style="background:${f.color}33;color:${f.color};margin-right:4px">${f.icon} ${f.label}</span>`
+    : '';
+
   const dueLabel = proj.dueDate ? `<div style="font-size:10px;color:${isDueSoon(proj.dueDate)?'#E07070':'var(--text3)'};margin-top:4px">📅 ${proj.dueDate}</div>` : '';
   el.innerHTML = `
     <div class="kc-title">${proj.title}</div>
-    ${proj._nodeLabel ? `<div class="kc-tags"><span class="kc-tag" style="background:${f.color}22;color:${f.color}">${proj._nodeLabel}</span></div>` : ''}
+    ${(proj._nodeLabel || fieldBadge) ? `<div class="kc-tags">${fieldBadge}${proj._nodeLabel ? `<span class="kc-tag" style="background:${f.color}22;color:${f.color}">${proj._nodeLabel}</span>` : ''}</div>` : ''}
     ${dueLabel}
     ${pct !== null ? `
       <div class="kc-prog">
@@ -4143,8 +4166,9 @@ function buildKanbanCard(proj, col) {
 function openKanbanAddModal(defaultColId) {
   const name = prompt('프로젝트 이름을 입력하세요:');
   if (!name || !name.trim()) return;
-  // 현재 분야의 최상위 노드(분야 노드 자체)에 추가
-  const fieldNode = getNode(currentKanbanField);
+  // 복수 선택 시 첫 번째 분야 기준으로 추가
+  const targetField = _kanbanFirstField;
+  const fieldNode = getNode(targetField);
   if (!fieldNode) { showToast('분야 노드를 찾을 수 없습니다'); return; }
   if (!fieldNode.projects) fieldNode.projects = [];
   fieldNode.projects.push({
