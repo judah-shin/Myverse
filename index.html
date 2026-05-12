@@ -1430,21 +1430,16 @@ function loadData() {
     const raw = localStorage.getItem('myverse_data');
     if (!raw) return JSON.parse(JSON.stringify(DEFAULT_DATA));
     const parsed = JSON.parse(raw);
-    // kanban: 키가 없거나 전체가 비어있으면 DEFAULT로 초기화
-    if (!parsed.kanban) {
-      parsed.kanban = JSON.parse(JSON.stringify(DEFAULT_DATA.kanban));
-    } else {
-      // 각 기본 분야 칸반이 빈 배열이면 샘플로 채워주기
-      Object.keys(DEFAULT_DATA.kanban).forEach(k => {
-        if (!parsed.kanban[k] || parsed.kanban[k].length === 0) {
-          parsed.kanban[k] = JSON.parse(JSON.stringify(DEFAULT_DATA.kanban[k]));
-        }
-      });
-    }
-    if (!parsed.events) parsed.events = JSON.parse(JSON.stringify(DEFAULT_DATA.events));
+    // 없는 키만 보완 (기존 데이터 절대 덮어쓰지 않음)
+    if (!parsed.kanban)      parsed.kanban      = {};
+    if (!parsed.events)      parsed.events      = [];
     if (!parsed.customFields) parsed.customFields = {};
+    if (!parsed.nodes)       parsed.nodes       = JSON.parse(JSON.stringify(DEFAULT_DATA.nodes));
     return parsed;
-  } catch { return JSON.parse(JSON.stringify(DEFAULT_DATA)); }
+  } catch(e) {
+    console.warn('[Myverse] loadData 실패, DEFAULT_DATA 사용:', e.message);
+    return JSON.parse(JSON.stringify(DEFAULT_DATA));
+  }
 }
 function syncFields() {
   // customFields의 null은 삭제된 기본 분야를 의미
