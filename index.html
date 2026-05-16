@@ -1331,10 +1331,46 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 /* ═══════════════════════════════════════════════
    MYVERSE DATA LAYER
    ═══════════════════════════════════════════════ */
+
+/* ── Supabase 설정 ── */
+const SUPABASE_URL = 'https://wwsfdzgptesgxqkjtvbh.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind3c2ZkemdwdGVzZ3hxa2p0dmJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4ODE4MTYsImV4cCI6MjA5NDQ1NzgxNn0.tYx9Qitrc-KBPGYkwje-gX7IdK-_7nIExE6rZNVotUM';
+const SUPABASE_USER_ID = 'pastor';
+const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* ── Supabase 저장 (비동기, 실패해도 앱 정상 작동) ── */
+async function _sbSave(data) {
+  try {
+    await _sb.from('myverse_data').upsert({
+      user_id: SUPABASE_USER_ID,
+      data: data,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id' });
+  } catch(e) {
+    console.warn('[Myverse] Supabase 저장 실패:', e.message);
+  }
+}
+
+/* ── Supabase 불러오기 ── */
+async function _sbLoad() {
+  try {
+    const { data, error } = await _sb
+      .from('myverse_data')
+      .select('data')
+      .eq('user_id', SUPABASE_USER_ID)
+      .single();
+    if (error || !data) return null;
+    return data.data;
+  } catch(e) {
+    console.warn('[Myverse] Supabase 불러오기 실패:', e.message);
+    return null;
+  }
+}
 const DEFAULT_FIELDS = {
   work:   { label: '업무',  icon: '💼', color: '#7B9FE0', bg: 'rgba(123,159,224,0.13)' },
   yt:     { label: '유튜브', icon: '🎬', color: '#3CBFA0', bg: 'rgba(60,191,160,0.12)' },
@@ -1465,7 +1501,10 @@ function syncFields() {
   deletedKeys.forEach(k => delete FIELDS[k]);
   Object.keys(FIELDS).forEach(k => { if (!FIELDS[k]) delete FIELDS[k]; });
 }
-function saveData() { localStorage.setItem('myverse_data', JSON.stringify(state)); }
+function saveData() {
+  localStorage.setItem('myverse_data', JSON.stringify(state));
+  _sbSave(state); // Supabase에도 동시 저장 (비동기)
+}
 function getNode(id) { return state.nodes.find(n => n.id === id); }
 function updateNode(id, patch) {
   const idx = state.nodes.findIndex(n => n.id === id);
@@ -5607,24 +5646,41 @@ document.getElementById('restore-input').addEventListener('change', function() {
   reader.readAsText(file, 'UTF-8');
   this.value = '';
 });
-const _initAdvanced = autoAdvanceRepeatProjects();
-if (_initAdvanced) {
-  saveData();
-  setTimeout(() => showToast('🔁 반복 프로젝트가 새 주기로 자동 갱신되었습니다'), 300);
+
+/* ── 앱 시작: Supabase → localStorage 동기화 후 렌더 ── */
+async function _initApp() {
+  // Supabase에서 최신 데이터 불러오기 시도
+  const sbData = await _sbLoad();
+  if (sbData && sbData.nodes) {
+    // Supabase 데이터가 있으면 localStorage와 비교 후 최신 것 사용
+    const localRaw = localStorage.getItem('myverse_data');
+    const localData = localRaw ? JSON.parse(localRaw) : null;
+    // Supabase 데이터로 덮어쓰기 (클라우드 우선)
+    localStorage.setItem('myverse_data', JSON.stringify(sbData));
+    state = sbData;
+    showToast('☁️ 클라우드 데이터 불러오기 완료');
+  }
+
+  const _initAdvanced = autoAdvanceRepeatProjects();
+  if (_initAdvanced) {
+    saveData();
+    setTimeout(() => showToast('🔁 반복 프로젝트가 새 주기로 자동 갱신되었습니다'), 300);
+  }
+  _autoBackupIfNeeded();
+  syncFields();
+  Object.keys(FIELDS).forEach(k => activeFilters.add(k));
+  currentKanbanFields = new Set([Object.keys(FIELDS)[0]]);
+  _kanbanFirstField = Object.keys(FIELDS)[0];
+  renderCardView();
+  renderCaptureChips();
+  renderKanban();
+  renderCalFilters();
+  renderCalHeader();
+  renderCalGrid();
+  initAlarms();
 }
-_autoBackupIfNeeded(); // 하루 1회 자동 백업
-syncFields();
-Object.keys(FIELDS).forEach(k => activeFilters.add(k));
-// 칸반 초기 분야를 실제 FIELDS 첫 번째 키로 설정 (커스텀 분야 반영 후)
-currentKanbanFields = new Set([Object.keys(FIELDS)[0]]);
-_kanbanFirstField = Object.keys(FIELDS)[0];
-renderCardView();
-renderCaptureChips();
-renderKanban();
-renderCalFilters();
-renderCalHeader();
-renderCalGrid();
-initAlarms(); // 알람 시스템 시작
+
+_initApp();
 </script>
 </body>
 </html>
