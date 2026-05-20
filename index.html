@@ -123,8 +123,8 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .checkbox.checked::after { content: '✓'; font-size: 10px; color: white; }
 
 /* ─── Graph View ─── */
-#graph-view { padding: 0; overflow: hidden; }
-#graph-canvas { width: 100%; height: 100%; cursor: grab; }
+#graph-view { padding: 0; overflow: hidden; border: 1.5px solid var(--border2); border-radius: var(--r2); background: #171D38; }
+#graph-canvas { width: 100%; height: 100%; cursor: grab; display:block; }
 #graph-canvas:active { cursor: grabbing; }
 .graph-toolbar { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--r2); padding: 8px 12px; z-index: 5; }
 .graph-btn { padding: 5px 10px; border-radius: var(--r); font-size: 12px; background: var(--bg3); border: 1px solid var(--border); color: var(--text2); cursor: pointer; transition: all .15s; }
@@ -2194,6 +2194,9 @@ function initGraph() {
   ctx = canvas.getContext('2d');
   camX = canvas.width / 2;
   camY = canvas.height / 2;
+  // 그래프 진입 시 항상 접힌 상태로 시작
+  expandedNodes.clear();
+  virtualNodes = [];
   if (!graphReady) {
     bindGraphEvents();
     graphReady = true;
@@ -2212,6 +2215,10 @@ function screenToWorld(sx, sy) {
 function drawGraph() {
   if (!ctx) return;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // ── 배경 채우기 ──
+  ctx.fillStyle = '#171D38';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   // ── 그리드 ──
   ctx.save();
