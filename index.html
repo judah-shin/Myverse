@@ -5806,14 +5806,20 @@ document.getElementById('restore-input').addEventListener('change', function() {
    초기 프로젝트 데이터 삽입 (중복 체크 후 추가)
    ═══════════════════════════════════════════════ */
 function _seedProjects() {
-  // 이미 시딩됐으면 스킵
-  if (state._projectsSeeded) return;
+  // 버전 관리: v2부터 영어 공부가 단일 프로젝트 구조
+  if (state._projectsSeededV4) return;
 
   const workNode = state.nodes.find(n => n.id === 'work');
   const learnNode = state.nodes.find(n => n.id === 'learn');
   if (!workNode || !learnNode) return;
   if (!workNode.projects) workNode.projects = [];
   if (!learnNode.projects) learnNode.projects = [];
+
+  // 기존 날짜별 개별 영어 공부 프로젝트 제거 (이전 버전 데이터 정리)
+  learnNode.projects = learnNode.projects.filter(p =>
+    !p.title.startsWith('영어 회화 공부 (Ch.') &&
+    !p.title.startsWith('영어 복습 (Ch.')
+  );
 
   // 기존 프로젝트 제목 목록 (중복 방지)
   const existingTitles = new Set([
@@ -5878,59 +5884,76 @@ function _seedProjects() {
     });
   });
 
-  // ── 영어 공부 (학습) — 날짜별 개별 프로젝트 ──
-  const englishSchedule = [
-    { date:'2026-06-01', title:'영어 회화 공부 (Ch.1~2)', alarm:'10:00' },
-    { date:'2026-06-02', title:'영어 회화 공부 (Ch.3)', alarm:'10:00' },
-    { date:'2026-06-03', title:'영어 회화 공부 (Ch.4)', alarm:'10:00' },
-    { date:'2026-06-04', title:'영어 회화 공부 (Ch.5)', alarm:'10:00' },
-    { date:'2026-06-05', title:'영어 회화 공부 (Ch.6)', alarm:'10:00' },
-    { date:'2026-06-06', title:'영어 회화 공부 (Ch.7)', alarm:'10:00' },
-    { date:'2026-06-07', title:'영어 복습 (Ch.1~7 이번 주 전체)', alarm:'13:00' },
-    { date:'2026-06-08', title:'영어 회화 공부 (Ch.8~9)', alarm:'10:00' },
-    { date:'2026-06-09', title:'영어 회화 공부 (Ch.10)', alarm:'10:00' },
-    { date:'2026-06-10', title:'영어 회화 공부 (Ch.11)', alarm:'10:00' },
-    { date:'2026-06-11', title:'영어 회화 공부 (Ch.12)', alarm:'10:00' },
-    { date:'2026-06-12', title:'영어 회화 공부 (Ch.13)', alarm:'10:00' },
-    { date:'2026-06-13', title:'영어 회화 공부 (Ch.14)', alarm:'10:00' },
-    { date:'2026-06-14', title:'영어 복습 (Ch.8~14 이번 주 전체)', alarm:'13:00' },
-    { date:'2026-06-15', title:'영어 회화 공부 (Ch.15~16)', alarm:'10:00' },
-    { date:'2026-06-16', title:'영어 회화 공부 (Ch.17)', alarm:'10:00' },
-    { date:'2026-06-17', title:'영어 회화 공부 (Ch.18)', alarm:'10:00' },
-    { date:'2026-06-18', title:'영어 회화 공부 (Ch.19)', alarm:'10:00' },
-    { date:'2026-06-19', title:'영어 회화 공부 (Ch.20)', alarm:'10:00' },
-    { date:'2026-06-20', title:'영어 회화 공부 (Ch.21)', alarm:'10:00' },
-    { date:'2026-06-21', title:'영어 복습 (Ch.15~21 이번 주 전체)', alarm:'13:00' },
-    { date:'2026-06-22', title:'영어 회화 공부 (Ch.22~23)', alarm:'10:00' },
-    { date:'2026-06-23', title:'영어 회화 공부 (Ch.24)', alarm:'10:00' },
-    { date:'2026-06-24', title:'영어 회화 공부 (Ch.25)', alarm:'10:00' },
-    { date:'2026-06-25', title:'영어 회화 공부 (Ch.26)', alarm:'10:00' },
-    { date:'2026-06-26', title:'영어 회화 공부 (Ch.27)', alarm:'10:00' },
-    { date:'2026-06-27', title:'영어 회화 공부 (Ch.28)', alarm:'10:00' },
-    { date:'2026-06-28', title:'영어 복습 (Ch.22~28 이번 주 전체)', alarm:'13:00' },
-    { date:'2026-06-29', title:'영어 회화 공부 (Ch.29~30)', alarm:'10:00' },
-    { date:'2026-06-30', title:'영어 회화 공부 (Ch.31)', alarm:'10:00' },
-    { date:'2026-07-01', title:'영어 회화 공부 (Ch.32)', alarm:'10:00' },
-    { date:'2026-07-02', title:'영어 회화 공부 (Ch.33)', alarm:'10:00' },
-    { date:'2026-07-03', title:'영어 회화 공부 (Ch.34)', alarm:'10:00' },
-    { date:'2026-07-04', title:'영어 회화 공부 (Ch.35)', alarm:'10:00' },
-  ];
-
+  // ── 영어 공부 (학습) — 단일 프로젝트 + 날짜별 할 일 구조 ──
+  const ENGLISH_PROJECT_TITLE = '영어 회화 공부 (총 72챕터)';
   const learnTitles = new Set(learnNode.projects.map(p => p.title));
-  englishSchedule.forEach(p => {
-    if (learnTitles.has(p.title)) return;
-    learnNode.projects.push({
-      id: mkId(), title: p.title, status: 'todo',
-      startDate: p.date, dueDate: p.date,
-      repeat: 'none', repeatAuto: false,
-      alarmEnabled: true, alarmTime: p.alarm,
-      archived: false, tags: ['영어공부'], todos: []
-    });
-  });
 
-  state._projectsSeeded = true;
+  if (!learnTitles.has(ENGLISH_PROJECT_TITLE)) {
+    // 6/1~7/4 완주 스케줄: 월 3챕터, 화~일 2챕터, 7/4 마지막 1챕터
+    const englishTodos = [
+      { date:'2026-06-01', text:'Ch.1~3 (월, 3챕터)' },
+      { date:'2026-06-02', text:'Ch.4~5' },
+      { date:'2026-06-03', text:'Ch.6~7' },
+      { date:'2026-06-04', text:'Ch.8~9' },
+      { date:'2026-06-05', text:'Ch.10~11' },
+      { date:'2026-06-06', text:'Ch.12~13' },
+      { date:'2026-06-07', text:'Ch.14~15 (주일)' },
+      { date:'2026-06-08', text:'Ch.16~18 (월, 3챕터)' },
+      { date:'2026-06-09', text:'Ch.19~20' },
+      { date:'2026-06-10', text:'Ch.21~22' },
+      { date:'2026-06-11', text:'Ch.23~24' },
+      { date:'2026-06-12', text:'Ch.25~26' },
+      { date:'2026-06-13', text:'Ch.27~28' },
+      { date:'2026-06-14', text:'Ch.29~30 (주일)' },
+      { date:'2026-06-15', text:'Ch.31~33 (월, 3챕터)' },
+      { date:'2026-06-16', text:'Ch.34~35' },
+      { date:'2026-06-17', text:'Ch.36~37' },
+      { date:'2026-06-18', text:'Ch.38~39' },
+      { date:'2026-06-19', text:'Ch.40~41' },
+      { date:'2026-06-20', text:'Ch.42~43' },
+      { date:'2026-06-21', text:'Ch.44~45 (주일)' },
+      { date:'2026-06-22', text:'Ch.46~48 (월, 3챕터)' },
+      { date:'2026-06-23', text:'Ch.49~50' },
+      { date:'2026-06-24', text:'Ch.51~52' },
+      { date:'2026-06-25', text:'Ch.53~54' },
+      { date:'2026-06-26', text:'Ch.55~56' },
+      { date:'2026-06-27', text:'Ch.57~58' },
+      { date:'2026-06-28', text:'Ch.59~60 (주일)' },
+      { date:'2026-06-29', text:'Ch.61~63 (월, 3챕터)' },
+      { date:'2026-06-30', text:'Ch.64~65' },
+      { date:'2026-07-01', text:'Ch.66~67' },
+      { date:'2026-07-02', text:'Ch.68~69' },
+      { date:'2026-07-03', text:'Ch.70~71' },
+      { date:'2026-07-04', text:'Ch.72 — 완주! 🎉' },
+    ];
+
+    const todos = englishTodos.map(t => ({
+      id: mkId(),
+      text: `[${t.date}] ${t.text}`,
+      done: false,
+      startDate: t.date,
+      dueDate: t.date,
+      plans: []
+    }));
+
+    learnNode.projects.push({
+      id: mkId(),
+      title: ENGLISH_PROJECT_TITLE,
+      status: 'todo',
+      startDate: '2026-06-01',
+      dueDate: '2026-07-04',
+      repeat: 'none', repeatAuto: false,
+      alarmEnabled: true, alarmTime: '16:00',
+      ddayEnabled: true,
+      archived: false,
+      tags: ['영어공부'],
+      todos
+    });
+  }
+
+  state._projectsSeededV4 = true;
   saveData();
-  console.log('[Myverse] 초기 프로젝트 시딩 완료');
+  console.log('[Myverse] 초기 프로젝트 시딩 V4 완료');
 }
 
 async function _initApp() {
