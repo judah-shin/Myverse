@@ -122,7 +122,24 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .checkbox.checked { background: var(--accent); border-color: var(--accent); }
 .checkbox.checked::after { content: '✓'; font-size: 10px; color: white; }
 
-/* ─── Graph View ─── */
+/* ─── D-day 섹션 ─── */
+.dday-section { margin-bottom: 24px; }
+.dday-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+.dday-card {
+  display: flex; flex-direction: column; gap: 4px;
+  background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: var(--r1); padding: 12px 16px;
+  min-width: 160px; flex: 1; max-width: 220px;
+  cursor: default; transition: border-color .15s;
+}
+.dday-card:hover { border-color: var(--border); }
+.dday-label { font-size: 12px; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dday-count { font-size: 22px; font-weight: 800; line-height: 1; }
+.dday-count.past   { color: var(--text3); }
+.dday-count.today  { color: #3CBFA0; }
+.dday-count.soon   { color: #E07070; }
+.dday-count.normal { color: var(--accent); }
+.dday-date { font-size: 11px; color: var(--text3); }
 #graph-view { padding: 0; overflow: hidden; border: 1.5px solid var(--border2); border-radius: var(--r2); background: #171D38; }
 #graph-canvas { width: 100%; height: 100%; cursor: grab; display:block; }
 #graph-canvas:active { cursor: grabbing; }
@@ -847,7 +864,11 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
       <div class="section-label">분야 현황</div>
       <div class="cards-grid" id="field-cards"></div>
 
-      <div class="section-label">오늘 할 일</div>
+      <!-- D-day 섹션 -->
+      <div class="section-label dday-section">D-day</div>
+      <div class="dday-grid" id="dday-grid"></div>
+
+      <div class="section-label" style="margin-top:24px">오늘 할 일</div>
       <div class="today-list" id="today-list"></div>
 
       <!-- 완료 보관함 (JS가 렌더) -->
@@ -1540,6 +1561,47 @@ navTabs.forEach(tab => {
 /* ═══════════════════════════════════════════════
    CARD VIEW
    ═══════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════
+   D-DAY
+   ═══════════════════════════════════════════════ */
+const DDAY_EVENTS = [
+  { title: '경남남부노회 여전도회 찬양대회', date: '2026-06-17' },
+  { title: 'Happy Day Festival', date: '2026-06-28' },
+  { title: '2026 필리핀 단기선교', date: '2026-07-05' },
+  { title: '중고등부 여름수련회', date: '2026-07-24' },
+  { title: '반석교회 특강', date: '2026-07-31' },
+];
+
+function renderDday() {
+  const grid = document.getElementById('dday-grid');
+  if (!grid) return;
+  const today = new Date(_localToday() + 'T00:00:00');
+  grid.innerHTML = '';
+
+  // DDAY_EVENTS + state.events 중 dday 플래그 있는 것 합치기
+  const custom = (state.events || []).filter(e => e.dday);
+  const all = [...DDAY_EVENTS, ...custom.map(e => ({ title: e.title, date: e.date || e.startDate }))];
+
+  all.forEach(ev => {
+    if (!ev.date) return;
+    const target = new Date(ev.date + 'T00:00:00');
+    const diff = Math.round((target - today) / 86400000);
+    const card = document.createElement('div');
+    card.className = 'dday-card';
+    let countClass = 'normal', label = '';
+    if (diff < 0)      { countClass = 'past';  label = `D+${Math.abs(diff)}`; }
+    else if (diff === 0) { countClass = 'today'; label = 'D-Day!'; }
+    else if (diff <= 7)  { countClass = 'soon';  label = `D-${diff}`; }
+    else                { countClass = 'normal'; label = `D-${diff}`; }
+    card.innerHTML = `
+      <div class="dday-label" title="${ev.title}">${ev.title}</div>
+      <div class="dday-count ${countClass}">${label}</div>
+      <div class="dday-date">${ev.date}</div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
 function getTodayTasks() {
   const todayStr = _localToday();
   const items = [];
@@ -1619,6 +1681,7 @@ function getFieldProgress(field) {
 function renderCardView() {
   const grid = document.getElementById('field-cards');
   grid.innerHTML = '';
+  renderDday(); // D-day 섹션 렌더
   const DEFAULT_FIELD_KEYS = ['work', 'yt', 'learn', 'health', 'money'];
 
   Object.entries(FIELDS).forEach(([key, f]) => {
@@ -5699,6 +5762,137 @@ document.getElementById('restore-input').addEventListener('change', function() {
 });
 
 /* ── 앱 시작: Supabase → localStorage 동기화 후 렌더 ── */
+/* ═══════════════════════════════════════════════
+   초기 프로젝트 데이터 삽입 (중복 체크 후 추가)
+   ═══════════════════════════════════════════════ */
+function _seedProjects() {
+  // 이미 시딩됐으면 스킵
+  if (state._projectsSeeded) return;
+
+  const workNode = state.nodes.find(n => n.id === 'work');
+  const learnNode = state.nodes.find(n => n.id === 'learn');
+  if (!workNode || !learnNode) return;
+  if (!workNode.projects) workNode.projects = [];
+  if (!learnNode.projects) learnNode.projects = [];
+
+  // 기존 프로젝트 제목 목록 (중복 방지)
+  const existingTitles = new Set([
+    ...workNode.projects.map(p => p.title),
+    ...learnNode.projects.map(p => p.title)
+  ]);
+
+  const wdMap = { mon:1, tue:2, wed:3, thu:4, fri:5, sat:6, sun:0 };
+  const mkId = () => 'sp' + Date.now() + Math.random().toString(36).slice(2,6);
+
+  // ── 업무 반복 프로젝트 ──
+  const workProjects = [
+    { title: '새벽기도 설교', repeat:'weekly', repeatWeekdays:[wdMap.mon,wdMap.tue], alarmEnabled:true, alarmTime:'04:40' },
+    { title: '새벽기도 방송실', repeat:'weekly', repeatWeekdays:[wdMap.wed,wdMap.thu], alarmEnabled:true, alarmTime:'04:40' },
+    { title: '와로 예배 인도', repeat:'weekly', repeatWeekdays:[wdMap.wed], alarmEnabled:true, alarmTime:'09:30' },
+    { title: '수요 구역모임', repeat:'weekly', repeatWeekdays:[wdMap.wed], alarmEnabled:true, alarmTime:'18:30' },
+    { title: '딥워크: 설교 준비', repeat:'weekly', repeatWeekdays:[wdMap.mon], alarmEnabled:false },
+    { title: '설교 준비 (오전)', repeat:'weekly', repeatWeekdays:[wdMap.tue,wdMap.thu], alarmEnabled:false },
+    { title: '주일·중고등부 예배 준비', repeat:'weekly', repeatWeekdays:[wdMap.sat], alarmEnabled:true, alarmTime:'09:00' },
+  ];
+
+  // 다음 해당 요일 날짜 계산
+  function nextWeekday(wds) {
+    const today = new Date(_localToday() + 'T00:00:00');
+    for (let i = 0; i <= 7; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      if (wds.includes(d.getDay())) return _localDateStr(d);
+    }
+    return _localToday();
+  }
+
+  workProjects.forEach(p => {
+    if (existingTitles.has(p.title)) return;
+    const due = nextWeekday(p.repeatWeekdays);
+    workNode.projects.push({
+      id: mkId(), title: p.title, status: 'todo',
+      startDate: due, dueDate: due,
+      repeat: p.repeat, repeatWeekdays: p.repeatWeekdays,
+      repeatAuto: true,
+      alarmEnabled: p.alarmEnabled, alarmTime: p.alarmTime || '09:00',
+      archived: false, tags: [], todos: []
+    });
+  });
+
+  // ── 단발 행사 (업무) ──
+  const oneTimeProjects = [
+    { title: '경남남부노회 여전도회 찬양대회', start:'2026-06-17', due:'2026-06-17', alarm:'08:00' },
+    { title: 'Happy Day Festival — 전도 축제', start:'2026-06-28', due:'2026-06-28', alarm:'08:00' },
+    { title: '2026 필리핀 단기선교', start:'2026-07-05', due:'2026-07-11', alarm:'06:00' },
+    { title: '중고등부 여름수련회', start:'2026-07-24', due:'2026-07-25', alarm:'08:00' },
+    { title: '반석교회 특강 강의', start:'2026-07-31', due:'2026-07-31', alarm:'08:00' },
+  ];
+  oneTimeProjects.forEach(p => {
+    if (existingTitles.has(p.title)) return;
+    workNode.projects.push({
+      id: mkId(), title: p.title, status: 'todo',
+      startDate: p.start, dueDate: p.due,
+      repeat: 'none', repeatAuto: false,
+      alarmEnabled: true, alarmTime: p.alarm,
+      archived: false, tags: [], todos: []
+    });
+  });
+
+  // ── 영어 공부 (학습) — 날짜별 개별 프로젝트 ──
+  const englishSchedule = [
+    { date:'2026-06-01', title:'영어 회화 공부 (Ch.1~2)', alarm:'10:00' },
+    { date:'2026-06-02', title:'영어 회화 공부 (Ch.3)', alarm:'10:00' },
+    { date:'2026-06-03', title:'영어 회화 공부 (Ch.4)', alarm:'10:00' },
+    { date:'2026-06-04', title:'영어 회화 공부 (Ch.5)', alarm:'10:00' },
+    { date:'2026-06-05', title:'영어 회화 공부 (Ch.6)', alarm:'10:00' },
+    { date:'2026-06-06', title:'영어 회화 공부 (Ch.7)', alarm:'10:00' },
+    { date:'2026-06-07', title:'영어 복습 (Ch.1~7 이번 주 전체)', alarm:'13:00' },
+    { date:'2026-06-08', title:'영어 회화 공부 (Ch.8~9)', alarm:'10:00' },
+    { date:'2026-06-09', title:'영어 회화 공부 (Ch.10)', alarm:'10:00' },
+    { date:'2026-06-10', title:'영어 회화 공부 (Ch.11)', alarm:'10:00' },
+    { date:'2026-06-11', title:'영어 회화 공부 (Ch.12)', alarm:'10:00' },
+    { date:'2026-06-12', title:'영어 회화 공부 (Ch.13)', alarm:'10:00' },
+    { date:'2026-06-13', title:'영어 회화 공부 (Ch.14)', alarm:'10:00' },
+    { date:'2026-06-14', title:'영어 복습 (Ch.8~14 이번 주 전체)', alarm:'13:00' },
+    { date:'2026-06-15', title:'영어 회화 공부 (Ch.15~16)', alarm:'10:00' },
+    { date:'2026-06-16', title:'영어 회화 공부 (Ch.17)', alarm:'10:00' },
+    { date:'2026-06-17', title:'영어 회화 공부 (Ch.18)', alarm:'10:00' },
+    { date:'2026-06-18', title:'영어 회화 공부 (Ch.19)', alarm:'10:00' },
+    { date:'2026-06-19', title:'영어 회화 공부 (Ch.20)', alarm:'10:00' },
+    { date:'2026-06-20', title:'영어 회화 공부 (Ch.21)', alarm:'10:00' },
+    { date:'2026-06-21', title:'영어 복습 (Ch.15~21 이번 주 전체)', alarm:'13:00' },
+    { date:'2026-06-22', title:'영어 회화 공부 (Ch.22~23)', alarm:'10:00' },
+    { date:'2026-06-23', title:'영어 회화 공부 (Ch.24)', alarm:'10:00' },
+    { date:'2026-06-24', title:'영어 회화 공부 (Ch.25)', alarm:'10:00' },
+    { date:'2026-06-25', title:'영어 회화 공부 (Ch.26)', alarm:'10:00' },
+    { date:'2026-06-26', title:'영어 회화 공부 (Ch.27)', alarm:'10:00' },
+    { date:'2026-06-27', title:'영어 회화 공부 (Ch.28)', alarm:'10:00' },
+    { date:'2026-06-28', title:'영어 복습 (Ch.22~28 이번 주 전체)', alarm:'13:00' },
+    { date:'2026-06-29', title:'영어 회화 공부 (Ch.29~30)', alarm:'10:00' },
+    { date:'2026-06-30', title:'영어 회화 공부 (Ch.31)', alarm:'10:00' },
+    { date:'2026-07-01', title:'영어 회화 공부 (Ch.32)', alarm:'10:00' },
+    { date:'2026-07-02', title:'영어 회화 공부 (Ch.33)', alarm:'10:00' },
+    { date:'2026-07-03', title:'영어 회화 공부 (Ch.34)', alarm:'10:00' },
+    { date:'2026-07-04', title:'영어 회화 공부 (Ch.35)', alarm:'10:00' },
+  ];
+
+  const learnTitles = new Set(learnNode.projects.map(p => p.title));
+  englishSchedule.forEach(p => {
+    if (learnTitles.has(p.title)) return;
+    learnNode.projects.push({
+      id: mkId(), title: p.title, status: 'todo',
+      startDate: p.date, dueDate: p.date,
+      repeat: 'none', repeatAuto: false,
+      alarmEnabled: true, alarmTime: p.alarm,
+      archived: false, tags: ['영어공부'], todos: []
+    });
+  });
+
+  state._projectsSeeded = true;
+  saveData();
+  console.log('[Myverse] 초기 프로젝트 시딩 완료');
+}
+
 async function _initApp() {
   // Supabase에서 최신 데이터 불러오기 시도
   const sbData = await _sbLoad();
@@ -5717,6 +5911,7 @@ async function _initApp() {
     saveData();
     setTimeout(() => showToast('🔁 반복 프로젝트가 새 주기로 자동 갱신되었습니다'), 300);
   }
+  _seedProjects(); // 초기 프로젝트 데이터 삽입 (최초 1회)
   _autoBackupIfNeeded();
   syncFields();
   Object.keys(FIELDS).forEach(k => activeFilters.add(k));
