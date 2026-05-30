@@ -1214,6 +1214,8 @@ navTabs.forEach(tab => {
     const target = tab.dataset.view;
     views.forEach(v => v.classList.toggle('active', v.id === target));
     navTabs.forEach(t => t.classList.toggle('active', t === tab));
+    // 그래프 뷰가 아닌 곳으로 이동하면 프로젝트 펼침 상태 초기화
+    if (target !== 'graph-view') expandedProjects.clear();
     if (target === 'graph-view') { setTimeout(initGraph, 50); }
     if (target === 'card-view') { renderCardView(); }
     if (target === 'kanban-view') { renderKanban(); }
@@ -1528,6 +1530,7 @@ let hoveredNode = null;
 let graphReady = false;
 let expandedNodes = new Set();
 let virtualNodes  = [];
+let expandedProjects = new Set();
 
 function fanPositions(parentX, parentY, cx, cy, count, dist, spreadDeg) {
   const baseAngle = Math.atan2(parentY - cy, parentX - cx);
@@ -2222,10 +2225,18 @@ function buildProjectBlock(node, proj, isArchived) {
   const header = block.querySelector('.project-header');
   const body = block.querySelector('.project-body');
   const toggle = block.querySelector('.project-toggle');
+  // 이전에 펼쳐둔 프로젝트면 열린 상태로 초기 렌더링
+  if (expandedProjects.has(proj.id)) {
+    body.classList.add('open');
+    toggle.classList.add('open');
+  }
   header.querySelector('.project-header-main').addEventListener('click', e => {
     if (e.target.tagName === 'BUTTON') return;
+    const isOpening = !body.classList.contains('open');
     body.classList.toggle('open');
     toggle.classList.toggle('open');
+    if (isOpening) expandedProjects.add(proj.id);
+    else           expandedProjects.delete(proj.id);
   });
 
   if (!isArchived) {
